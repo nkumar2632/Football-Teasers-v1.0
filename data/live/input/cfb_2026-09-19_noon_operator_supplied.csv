@@ -1,0 +1,24 @@
+# CFB 2026-09-19 (Week 3) — NOON ET SLATE, OPERATOR-SUPPLIED MORNING BOARD.
+#
+# Provenance: supplied directly by the operator as "the early lines from before they
+# started at noon". Pregame status is therefore established by the operator's own
+# statement. No per-book name and no per-line observation timestamp was supplied, so
+# these are labelled archived_pregame_reference, NOT true_timestamped_pregame and NOT
+# closing lines.
+#
+# Spread is from the FAVOURITE's perspective (negative). One row per GAME; both sides
+# are enumerated downstream.
+#
+# Rule-4 disagreements against the earlier search-synthesis recovery are recorded in
+# the note column. They were NOT averaged; the operator-supplied value is used.
+away,home,favourite,spread_fav,total,kickoff_et,note
+Coastal Carolina,Delaware,Delaware,-5.5,57.5,11:30,agrees with earlier recovery
+Arizona State,Kansas,Arizona State,-5.5,50.5,12:00,"London; CONFLICT: earlier recovery had KANSAS -6/52.5 — opposite favourite. Operator value used."
+Georgia,Arkansas,Georgia,-24.5,54.5,12:00,agrees with earlier recovery (FanDuel Research preview)
+Kent State,Ohio State,Ohio State,-52.5,58.5,12:00,agrees with earlier recovery
+Buffalo,Penn State,Penn State,-40.5,49.5,12:00,"CONFLICT: earlier recovery had -39.5/48.5. Operator value used."
+Akron,Minnesota,Minnesota,-23.5,49.5,12:00,"CONFLICT: earlier recovery had -24.5. Operator value used."
+Tulane,Kansas State,Kansas State,-20.5,49.5,12:00,agrees with earlier recovery
+Bowling Green,Iowa State,Iowa State,-23.5,43.5,12:00,agrees with earlier recovery
+North Carolina,Clemson,Clemson,-3.5,43.5,12:00,not in earlier recovery
+Mercer,Georgia Tech,Georgia Tech,-31.5,52.0,12:00,"FCS opponent; v1.0 spec is silent on FCS — see AMBIGUITIES A-9. No filter invented."

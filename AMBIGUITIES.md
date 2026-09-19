@@ -117,6 +117,22 @@ week. A 3-team ticket does not stake more, so it cannot contribute more.
 **Why:** §7 requires hypothetical prices to be labelled as such, and §8.7 requires positive
 EV *at the actual offered price*. A sensitivity scenario is not an offered price.
 
+## A-9. The specification is silent on FCS opponents
+
+**Reading used:** none. No FCS filter exists and none was added. An FBS-vs-FCS game is
+treated exactly like any other game: it is screened on geometry and the total guardrail
+alone.
+
+**Why:** `TEASER_MODEL_V1_0.md` contains no mention of FCS or FBS anywhere. Adding an
+opponent-class filter would be a *new filter*, which is forbidden during the 2026 season
+even when it looks prudent — and "prudent" is precisely the reasoning AGENTS.md warns
+about. Whether v1.0 should exclude FCS opponents is a research question for the 2027
+preseason review, not an implementation decision.
+
+**First encountered:** 2026-09-19, Mercer @ Georgia Tech on the CFB paper slate. The game
+failed the geometry screen on its own (−31.5), so the reading changed nothing about that
+board. It is recorded here so the next occurrence is not resolved silently.
+
 ---
 
 ## Derived facts (not ambiguities, recorded to prevent re-litigation)
