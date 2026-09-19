@@ -1,0 +1,21 @@
+{
+  "caveats": [
+    "spread_line/total_line have no documented capture timestamp. They are archived reference lines, NOT a close of any kind.",
+    "The source aggregates lines historically; the exact sportsbook is not recorded per game.",
+    "No teaser menu prices are present in this source. None have been invented."
+  ],
+  "dataset": "NFL games 2024_2025",
+  "documented_fields": {
+    "spread_line": "The spread line for the game. A positive number means the home team was favored by that many points, a negative number means the away team was favored by that many points. No capture time is documented.",
+    "total_line": "The total line for the game. No capture time is documented."
+  },
+  "line_provenance": "archived_reference_line",
+  "line_provenance_justification": "nfldata DATASETS.md documents spread_line/total_line only as 'the spread line for the game' / 'the total line for the game'. It makes no claim about capture time, so the fields cannot be called a close of any kind.",
+  "local_path": "data/raw/nflverse_nfldata_games.csv",
+  "retrieved_at_utc": "2026-09-19T14:17:56+00:00",
+  "rows": 7548,
+  "sha256": "35bc182c6e810955404f8e035228fc6535cce3c39c8ecc0dc8af96715b1cd30f",
+  "source_commit": "4a7ebfde2a7c784255f95c457d8c638a7ca188fa",
+  "source_name": "nflverse/nfldata games.csv (Lee Sharpe)",
+  "source_url": "https://github.com/nflverse/nfldata/blob/master/data/games.csv"
+}
