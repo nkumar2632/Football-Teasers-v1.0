@@ -62,6 +62,26 @@ def _table(header, rows) -> str:
     return "\n".join([line, rule, *body])
 
 
+def _signed(value) -> str:
+    """Render a betting number with an explicit sign. **Display only.**
+
+    A spread or an American price is ambiguous without its sign: ``2.5`` could be read as
+    either side of the game, and ``170`` could be read as ``-170``. The stored record keeps
+    the value exactly as the grading layer wrote it; this only changes how it is printed.
+    Zero is left unsigned, and UNAVAILABLE passes straight through.
+    """
+    text = str(value).strip()
+    if not text or text == UNAVAILABLE:
+        return text or UNAVAILABLE
+    if text[0] in "+-":
+        return text
+    try:
+        number = float(text)
+    except ValueError:
+        return text
+    return f"+{text}" if number > 0 else text
+
+
 def _pct(value, places: int = 1) -> str:
     """Format a 0-1 probability as a percentage. Never used to compute anything."""
     return f"{float(value) * 100:.{places}f}%"
@@ -172,7 +192,7 @@ def render_weekly_report(
                 [
                     leg.rank,
                     leg.team,
-                    f"{leg.spread} → {leg.teased_spread}",
+                    f"{_signed(leg.spread)} → {_signed(leg.teased_spread)}",
                     leg.total,
                     _pct(leg.p_est),
                 ]
@@ -194,15 +214,22 @@ def render_weekly_report(
     add("## Proposed card")
     add("")
     if card.selected_tickets:
+        add(
+            "**Every ticket below is POSITIVE EV at the offered price.** The frozen "
+            "selection admits nothing else — a negative-EV ticket can never reach this "
+            "table."
+        )
+        add("")
         add(_table(
-            ["Ticket", "Price", "P_ticket", "Break-even", "EV%", "Stake"],
+            ["Ticket", "Price", "P_ticket", "Break-even", "EV%", "Status", "Stake"],
             [
                 [
                     _bold("+".join(t.teams), True),
-                    t.offered_american,
+                    _signed(t.offered_american),
                     _pct(t.p_ticket),
                     _break_even(t.break_even),
                     _bold(_pct_str(t.ev_percent), _is_positive_ev(t)),
+                    f"{GREEN} {_bold(t.status, _is_positive_ev(t))}",
                     "1u",
                 ]
                 for t in card.selected_tickets
@@ -238,7 +265,7 @@ def render_weekly_report(
             [
                 [
                     _bold("+".join(t.teams), t.selected),
-                    t.offered_american,
+                    _signed(t.offered_american),
                     _pct(t.p_ticket),
                     _break_even(t.break_even),
                     _bold(_pct_str(t.ev_percent), _is_positive_ev(t)),
@@ -313,7 +340,7 @@ def render_weekly_report(
             [
                 [
                     "+".join(_team_of(x) for x in row["ticket_key"].split("|")),
-                    row["sportsbook"], row["american_odds"], row["stake_units"],
+                    row["sportsbook"], _signed(row["american_odds"]), row["stake_units"],
                     row["placed_at"], row["designation"],
                 ]
                 for row in placements

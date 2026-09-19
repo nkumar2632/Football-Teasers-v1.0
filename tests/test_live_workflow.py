@@ -460,6 +460,9 @@ def test_report_warns_when_no_price_was_supplied():
 # text, so the layout can keep evolving while the numbers stay nailed down.
 
 
+from teaser_model_v1.live.report import _signed
+
+
 def _cells(line):
     return [c.strip().replace("**", "") for c in line.strip().strip("|").split("|")]
 
@@ -493,8 +496,9 @@ def test_report_legs_match_the_card_exactly(card):
         original, teased = (part.strip() for part in row[2].split("→"))
         assert int(row[0]) == leg.rank
         assert row[1] == leg.team
-        assert original == str(leg.spread)
-        assert teased == str(leg.teased_spread)
+        # Signed rendering of the stored value — the sign is display, the number is not.
+        assert original == _signed(leg.spread)
+        assert teased == _signed(leg.teased_spread)
         assert row[3] == str(leg.total)
         # P_est is displayed to 1dp; it must be exactly that rendering of the stored
         # full-precision value — not a separately computed number.
@@ -507,7 +511,7 @@ def test_report_ticket_board_matches_the_card_exactly(card):
     assert len(rows) == len(card.tickets)
     for row, ticket in zip(rows, card.tickets):
         assert row[0] == "+".join(ticket.teams)
-        assert row[1] == ticket.offered_american
+        assert row[1] == _signed(ticket.offered_american)
         assert row[2] == f"{ticket.p_ticket * 100:.1f}%"
         if ticket.break_even != "UNAVAILABLE":
             assert row[3] == f"{float(ticket.break_even) * 100:.1f}%"
@@ -587,3 +591,72 @@ def test_report_pending_verdict_is_shown_per_proposed_ticket(card):
     for ticket in card.selected_tickets:
         assert "+".join(ticket.teams) in section
     assert section.count(VERDICT_PENDING) >= len(card.selected_tickets)
+
+
+# ---- Phase 4.2b explicit-sign and positive-EV presentation -------------------------------
+
+
+def test_signed_helper_rules():
+    """Display-only sign rendering. Never mutates the value, only how it prints."""
+    assert _signed("2.5") == "+2.5"
+    assert _signed("-8.5") == "-8.5"
+    assert _signed("+8.5") == "+8.5"          # already signed, left alone
+    assert _signed("170") == "+170"
+    assert _signed("-110") == "-110"
+    assert _signed("100") == "+100"
+    assert _signed("0") == "0"                # pick'em takes no sign
+    assert _signed("UNAVAILABLE") == "UNAVAILABLE"
+    assert _signed("") == "UNAVAILABLE"
+    # The numeric content must survive untouched.
+    for raw in ("2.5", "-8.5", "170", "-110", "0"):
+        assert float(_signed(raw)) == float(raw)
+
+
+def test_report_positive_spreads_keep_their_plus_sign(card):
+    text = render_weekly_report(card, generated_at=CAPTURED)
+    rows = _rows(text, "Rank")
+    signed_seen = False
+    for row, leg in zip(rows, card.qualifying_legs):
+        original, teased = (part.strip() for part in row[2].split("→"))
+        for shown, stored in ((original, leg.spread), (teased, leg.teased_spread)):
+            if float(stored) > 0:
+                assert shown.startswith("+"), f"unsigned positive spread {shown!r}"
+                signed_seen = True
+            elif float(stored) < 0:
+                assert shown.startswith("-")
+            assert float(shown) == float(stored)
+    assert signed_seen, "fixture must contain at least one positive spread"
+
+
+def test_report_positive_american_odds_keep_their_plus_sign(card):
+    text = render_weekly_report(card, generated_at=CAPTURED)
+    rows = _rows(_section(text, "## Full ticket board"), "Ticket")
+    signed_seen = False
+    for row, ticket in zip(rows, card.tickets):
+        if ticket.offered_american == "UNAVAILABLE":
+            continue
+        shown = row[1]
+        if float(ticket.offered_american) > 0:
+            assert shown.startswith("+"), f"unsigned positive price {shown!r}"
+            signed_seen = True
+        else:
+            assert shown.startswith("-")
+        assert float(shown) == float(ticket.offered_american)
+    assert signed_seen, "fixture must contain at least one plus-money price"
+
+
+def test_proposed_card_visibly_marks_every_ticket_positive_ev(card):
+    """A reader must not have to infer positive EV from the selection rule."""
+    text = render_weekly_report(card, generated_at=CAPTURED)
+    section = _section(text, "## Proposed card")
+    assert "POSITIVE EV" in section.upper()
+    rows = _rows(section, "Ticket")
+    assert rows, "fixture must propose at least one ticket"
+    assert len(rows) == len(card.selected_tickets)
+    for row, ticket in zip(rows, card.selected_tickets):
+        assert row[0] == "+".join(ticket.teams)
+        assert "POSITIVE" in row[5].upper(), f"no positive-EV marker in {row!r}"
+        assert row[5].endswith(ticket.status)
+        assert row[6] == "1u"
+    # And the claim must be true of the stored card, not merely printed.
+    assert all("POSITIVE" in t.status.upper() for t in card.selected_tickets)

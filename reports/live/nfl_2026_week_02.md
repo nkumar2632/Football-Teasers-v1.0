@@ -17,8 +17,8 @@
 | Rank | Team | Original → Teased | Total | P_est |
 |------|------|-------------------|-------|-------|
 | 1    | TB   | -8.5 → -2.5       | 41.5  | 75.5% |
-| 2    | ATL  | 2.5 → 8.5         | 43.5  | 74.7% |
-| 3    | CIN  | 2.5 → 8.5         | 45.5  | 74.0% |
+| 2    | ATL  | +2.5 → +8.5       | 43.5  | 74.7% |
+| 3    | CIN  | +2.5 → +8.5       | 45.5  | 74.0% |
 | 4    | BAL  | -8.5 → -2.5       | 46    | 73.8% |
 
 Top four retained: **TB, ATL, CIN, BAL**
@@ -27,11 +27,13 @@ P_est is a *model-estimated hit probability*, shown to one decimal place. Full p
 
 ## Proposed card
 
-| Ticket         | Price | P_ticket | Break-even | EV%       | Stake |
-|----------------|-------|----------|------------|-----------|-------|
-| **TB+ATL+CIN** | 170   | 41.7%    | 37.0%      | **12.7%** | 1u    |
-| **TB+ATL+BAL** | 170   | 41.6%    | 37.0%      | **12.4%** | 1u    |
-| **CIN+BAL**    | -110  | 54.6%    | 52.4%      | **4.3%**  | 1u    |
+**Every ticket below is POSITIVE EV at the offered price.** The frozen selection admits nothing else — a negative-EV ticket can never reach this table.
+
+| Ticket         | Price | P_ticket | Break-even | EV%       | Status            | Stake |
+|----------------|-------|----------|------------|-----------|-------------------|-------|
+| **TB+ATL+CIN** | +170  | 41.7%    | 37.0%      | **12.7%** | 🟢 **POSITIVE_EV** | 1u    |
+| **TB+ATL+BAL** | +170  | 41.6%    | 37.0%      | **12.4%** | 🟢 **POSITIVE_EV** | 1u    |
+| **CIN+BAL**    | -110  | 54.6%    | 52.4%      | **4.3%**  | 🟢 **POSITIVE_EV** | 1u    |
 
 Leg exposure: **TB 2u** · **ATL 2u** · **CIN 2u** · **BAL 2u**
 
@@ -41,10 +43,10 @@ Card `card_2026w02_492bb1ded5b3` — **PROPOSED ONLY. This is not a wager.**
 
 | Ticket         | Price | P_ticket | Break-even | EV%       | Status        |
 |----------------|-------|----------|------------|-----------|---------------|
-| **TB+ATL+CIN** | 170   | 41.7%    | 37.0%      | **12.7%** | 🟢 POSITIVE_EV |
-| **TB+ATL+BAL** | 170   | 41.6%    | 37.0%      | **12.4%** | 🟢 POSITIVE_EV |
-| TB+CIN+BAL     | 170   | 41.2%    | 37.0%      | **11.3%** | 🟢 POSITIVE_EV |
-| ATL+CIN+BAL    | 170   | 40.8%    | 37.0%      | **10.2%** | 🟢 POSITIVE_EV |
+| **TB+ATL+CIN** | +170  | 41.7%    | 37.0%      | **12.7%** | 🟢 POSITIVE_EV |
+| **TB+ATL+BAL** | +170  | 41.6%    | 37.0%      | **12.4%** | 🟢 POSITIVE_EV |
+| TB+CIN+BAL     | +170  | 41.2%    | 37.0%      | **11.3%** | 🟢 POSITIVE_EV |
+| ATL+CIN+BAL    | +170  | 40.8%    | 37.0%      | **10.2%** | 🟢 POSITIVE_EV |
 | TB+ATL         | -110  | 56.4%    | 52.4%      | **7.7%**  | 🟢 POSITIVE_EV |
 | TB+CIN         | -110  | 55.9%    | 52.4%      | **6.7%**  | 🟢 POSITIVE_EV |
 | TB+BAL         | -110  | 55.7%    | 52.4%      | **6.4%**  | 🟢 POSITIVE_EV |
@@ -83,7 +85,7 @@ A proposed card is never a placement. Nothing counts as wagered until it is expl
 | teaser price snapshot | `prc_2026w02_d29ff0515315`  |
 | sportsbook / source   | USER_SPORTSBOOK_SCREENSHOT  |
 | graded at             | `2026-09-19T21:51:41+00:00` |
-| report generated      | `2026-09-19T22:10:49+00:00` |
+| report generated      | `2026-09-19T22:23:12+00:00` |
 | card status           | PROPOSED                    |
 | games scanned         | 15                          |
 
