@@ -42,7 +42,11 @@ def load(path: Path, label: str) -> list[PregameLineInput]:
             total = Decimal(row["total"])
             dog = away if fav == home else home
             game_id = f"{away.replace(' ', '')}@{home.replace(' ', '')}"
-            source = f"operator-supplied morning board; {row.get('note', '')}".strip("; ")
+            source = row.get("source") or "operator-supplied board"
+            if row.get("window"):
+                source = f"{source} [{row['window']}]"
+            if row.get("note"):
+                source = f"{source}; {row['note']}"
             for team, opponent, spread in (
                 (fav, dog, fav_spread),
                 (dog, fav, -fav_spread),
@@ -107,7 +111,13 @@ def main() -> int:
     print(f"\ntop-four primary legs : {len(top)}")
     print(f"paper tickets         : {len(tickets)}")
     for t in tickets:
-        print(f"  {t.ticket_id}  EV={t.ev if t.ev is not None else 'UNAVAILABLE'}")
+        names = " + ".join(leg.team for leg in t.legs)
+        be = f"{t.fair_break_even_profit:.4f}"
+        print(f"  {t.n_legs}-team: {names}")
+        print(f"      P_ticket={t.p_ticket:.4f}  "
+              f"EV={t.ev if t.ev is not None else 'UNAVAILABLE (no actual price)'}  "
+              f"model-implied fair break-even profit per unit={be}  "
+              f"placement_eligible={t.placement_eligible}")
     print("\nEV is UNAVAILABLE for every ticket unless an actual contemporaneous CFB "
           "teaser price is supplied. None was. No price was invented.")
     print("All CFB output is PAPER/RESEARCH. Placements: 0. Units staked: 0.")
