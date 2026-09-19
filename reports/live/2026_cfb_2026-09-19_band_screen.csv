@@ -1,0 +1,33 @@
+away,home,favourite,spread_fav,total,kickoff_et,source_note,band_pts,verdict,reason
+Coastal Carolina,Delaware,Delaware,-5.5,57.5,11:30,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band; total exceeds 52 cap by more than band
+Akron,Minnesota,Minnesota,-24.5,49.5,12:00,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+Bowling Green,Iowa State,Iowa State,-23.5,44.5,12:00,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+Buffalo,Penn State,Penn State,-39.5,48.5,12:00,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+Kent State,Ohio State,Ohio State,-52.5,58.5,12:00,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band; total exceeds 52 cap by more than band
+North Texas,Texas State,Texas State,-3,63.5,12:00,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,total exceeds 52 cap by more than band
+Tulane,Kansas State,Kansas State,-20.5,49.5,12:00,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+Arizona State,Kansas,Kansas,-6,52.5,12:00,CBS wk3 board (London),1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+Georgia,Arkansas,Georgia,-24.5,54.5,12:00,FanDuel Research preview,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band; total exceeds 52 cap by more than band
+Eastern Michigan,Wisconsin,Wisconsin,-22.5,43.5,12:30,search synthesis,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+Florida State,Alabama,Alabama,-20,49,15:30,CONFLICT -19.5/-20/-20.5 and 48.5/49/49.5,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+Miami OH,Cincinnati,Cincinnati,-14.5,51.5,15:30,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+Utah State,Utah,Utah,-28,56.5,15:30,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band; total exceeds 52 cap by more than band
+UTEP,Michigan,Michigan,-35.5,48.5,15:30,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+Duquesne,Washington State,Washington State,-35.5,52.5,15:30,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+Wagner,California,California,-38.5,55.5,15:30,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band; total exceeds 52 cap by more than band
+Kentucky,Texas A&M,Texas A&M,-16.5,49.5,15:30,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+Stonehill,UMass,UMass,-13.5,48.5,15:30,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+SMU,Louisville,Louisville,-1.5,59,15:30,CONFLICT total 58.5/59.5,1.0,ROBUSTLY_EXCLUDED,total exceeds 52 cap by more than band
+USC,Rutgers,USC,-23.5,59.5,15:30,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band; total exceeds 52 cap by more than band
+Ball State,Liberty,Liberty,-14.5,49.5,16:00,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+Northern Iowa,Iowa,Iowa,-31.5,48.5,16:00,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+WKU,Indiana,Indiana,-44.5,60.5,16:00,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band; total exceeds 52 cap by more than band
+Louisiana Tech,Baylor,Baylor,-17.5,53.5,16:00,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band; total exceeds 52 cap by more than band
+Stanford,Duke,Duke,-9.5,51.5,16:00,CBS wk3 board,1.0,UNDETERMINED,geometry depends on exact half-point; cap depends on exact total
+Michigan State,Notre Dame,Notre Dame,-29.5,52,19:30,CONFLICT total 51.5/52.5,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+LSU,Ole Miss,LSU,-3,58.5,19:30,CBS wk3 board,1.0,ROBUSTLY_EXCLUDED,total exceeds 52 cap by more than band
+Vanderbilt,NC State,Vanderbilt,-3,51,,search synthesis,1.0,UNDETERMINED,geometry depends on exact half-point
+Missouri,Troy,Missouri,-27.5,49.5,,search synthesis,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+Pitt,Syracuse,Pitt,-10.5,51.5,,search synthesis,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band
+Miami,Wake Forest,Miami,-21.5,55.5,,search synthesis,1.0,ROBUSTLY_EXCLUDED,no primary geometry within band; total exceeds 52 cap by more than band
+South Carolina,Mississippi State,South Carolina,-3.5,58.5,,search synthesis,1.0,ROBUSTLY_EXCLUDED,total exceeds 52 cap by more than band
