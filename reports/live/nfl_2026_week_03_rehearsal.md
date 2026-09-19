@@ -1,6 +1,6 @@
 # NFL 2026 Week 3 — Teaser Model v1.0 live card
 
-Report generated: `2026-09-19T17:39:03+00:00`
+Report generated: `2026-09-19T17:53:32+00:00`
 
 > Frozen Teaser Model v1.0. Nothing in this system places a wager.
 
@@ -83,7 +83,7 @@ New price snapshot: `prc_2026w03_18835ed5ce4d`
 
 | Placement                | Ticket                                  | Book           | Odds | Stake | Placed at                 | Designation      |
 |--------------------------|-----------------------------------------|----------------|------|-------|---------------------------|------------------|
-| plc_2026w03_ff9ca5d6c62c | 2026_03_BUF_MIA-MIA|2026_03_DAL_PHI-PHI | SYNTHETIC_BOOK | -120 | 1.0   | 2026-09-20T12:45:00-04:00 | MODEL_DESIGNATED |
+| plc_2026w03_618e44810ee4 | 2026_03_BUF_MIA-MIA|2026_03_DAL_PHI-PHI | SYNTHETIC_BOOK | -120 | 1.0   | 2026-09-20T12:45:00-04:00 | MODEL_DESIGNATED |
 
 **ACTUALLY PLACED** — as recorded manually by the operator.
 
@@ -91,7 +91,7 @@ New price snapshot: `prc_2026w03_18835ed5ce4d`
 
 | Placement                | Model result | Book settlement | P/L (units)        | Agree |
 |--------------------------|--------------|-----------------|--------------------|-------|
-| plc_2026w03_ff9ca5d6c62c | WIN          | WIN             | 0.8333333333333334 | yes   |
+| plc_2026w03_618e44810ee4 | WIN          | WIN             | 0.8333333333333334 | yes   |
 
 Model grade and sportsbook settlement are recorded separately and are never reconciled by a generic rule.
 

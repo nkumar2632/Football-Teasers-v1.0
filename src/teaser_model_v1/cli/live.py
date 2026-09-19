@@ -149,6 +149,8 @@ def cmd_grade_week(args) -> int:
             top_four_legs=len(card.top_legs),
             positive_ev_tickets=card.n_positive_ev,
             proposed_tickets=len(card.selected_tickets),
+            # Placement and settlement facts are NOT copied here; they are derived from
+            # the append-only ledgers whenever status is read.
             placed_tickets=0, units_staked=0.0,
             market_snapshot_id=card.market_snapshot_id,
             price_snapshot_id=card.price_snapshot_id,
@@ -157,6 +159,7 @@ def cmd_grade_week(args) -> int:
         )
     )
     print("season ledger updated (week recorded even if empty)")
+    print("placement/settlement status is derived at read time; no re-recording needed")
     return 0
 
 
@@ -171,10 +174,16 @@ def cmd_show_card(args) -> int:
         return 1
     card = card_from_dict(payload)
     placements = workspace.placements.entries(card.season, card.week)
+    placement_ids = {row["placement_id"] for row in placements}
+    settlements = [
+        row for row in workspace.all_settlements(card.season)
+        if row.get("placement_id") in placement_ids
+    ]
     print(write_weekly_report(
         card,
         workspace.reports_dir / f"nfl_{card.season}_week_{card.week:02d}.md",
         placements=placements,
+        settlements=settlements,
     ))
     return 0
 
@@ -208,25 +217,55 @@ def cmd_recheck(args) -> int:
 
 
 def cmd_record_placement(args) -> int:
+    from teaser_model_v1.live.placement import PlacementRefused
+    from teaser_model_v1.live.rehydrate import recheck_from_dict
+
     workspace = _workspace(args)
     card = card_from_dict(workspace.cards.get(args.card))
     ledger = workspace.placements
+    placed_at = require_aware(args.placed_at, field="--placed-at")
+    designation = EXTERNAL_NON_MODEL if args.external else MODEL_DESIGNATED
 
-    recheck = None
-    if args.recheck:
-        from teaser_model_v1.live.rehydrate import recheck_from_dict
+    recheck = recheck_from_dict(workspace.cards.get(args.recheck)) if args.recheck else None
 
-        recheck = recheck_from_dict(workspace.cards.get(args.recheck))
+    if designation == MODEL_DESIGNATED:
+        if recheck is None:
+            print(
+                "REFUSED: a model-designated placement requires --recheck.\n"
+                "  Run `recheck` against a current market and teaser-price snapshot first.\n"
+                "  There is no override. Use --external to record a non-model wager."
+            )
+            ledger.log_refusal(
+                card=card, ticket_key=args.ticket, placed_at=placed_at,
+                reason="no re-check supplied", attempted_by=args.by,
+            )
+            return 2
+        try:
+            # Validate BEFORE writing anything.
+            ledger.validate_model_placement(
+                card, args.ticket, placed_at=placed_at, recheck=recheck,
+                known_rechecks=workspace.rechecks_for_card(card.card_id),
+                stake_units=args.stake,
+            )
+        except (PlacementRefused, ValueError) as exc:
+            print(f"REFUSED: {exc}")
+            ledger.log_refusal(
+                card=card, ticket_key=args.ticket, placed_at=placed_at,
+                reason=str(exc), attempted_by=args.by,
+            )
+            print("No placement record was written. The attempt is logged in refusals.jsonl.")
+            return 2
 
     record = ledger.record(
         card, args.ticket,
         recheck=recheck,
+        known_rechecks=workspace.rechecks_for_card(card.card_id),
         sportsbook=args.book,
         american_odds=args.odds,
-        placed_at=require_aware(args.placed_at, field="--placed-at"),
+        placed_at=placed_at,
         recorded_by=args.by,
         stake_units=args.stake,
-        designation=EXTERNAL_NON_MODEL if args.external else MODEL_DESIGNATED,
+        designation=designation,
         book_reference=args.reference or "",
         notes=args.notes or "",
     )
@@ -277,9 +316,26 @@ def cmd_settle(args) -> int:
 
 def cmd_season_status(args) -> int:
     workspace = _workspace(args)
-    status = workspace.season_ledger.season_status(args.season)
+    placements = workspace.placements.entries(args.season)
+    settlements = workspace.all_settlements(args.season)
+    status = workspace.season_ledger.season_status(
+        args.season, placements=placements, settlements=settlements
+    )
+    status["refused_attempts"] = len(workspace.placements.refusals(args.season))
     print(json.dumps(status, indent=2))
-    print("\nWeeks with zero qualifying legs and zero bets are included above.")
+    if args.by_week:
+        print()
+        print(json.dumps(
+            workspace.season_ledger.derive_weeks(
+                args.season, placements=placements, settlements=settlements
+            ),
+            indent=2,
+        ))
+    print(
+        "\nPlacement and settlement figures are derived from the append-only ledgers at "
+        "read time; no re-recording is needed to synchronise them."
+    )
+    print("Weeks with zero qualifying legs and zero bets are included above.")
     return 0
 
 
@@ -364,7 +420,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_argument("--external", action="store_true",
                      help="mark as a non-model wager, excluded from v1.0 performance")
     sub.add_argument("--recheck", default=None,
-                     help="re-check record id; the ticket must be VALIDATED in it")
+                     help="REQUIRED for a model-designated placement; the ticket must be "
+                          "VALIDATED in it and the re-check must be current and pregame")
     sub.add_argument("--reference", default=None)
     sub.add_argument("--notes", default=None)
 
@@ -381,6 +438,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub = add("season-status", cmd_season_status, "season totals, including empty weeks")
     sub.add_argument("--season", type=int, required=True)
+    sub.add_argument("--by-week", action="store_true", dest="by_week")
 
     sub = add("correct", cmd_correct, "supersede a record without rewriting it")
     sub.add_argument("--supersedes", required=True)

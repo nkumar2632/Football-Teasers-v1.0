@@ -65,6 +65,28 @@ def card():
     return grade_week(board(FIVE_PRIMARY), prices(two=-110, three=180), graded_at=CAPTURED)
 
 
+def valid_recheck(card):
+    """A clean re-check: later board, contemporaneous price, everything VALIDATED."""
+    return recheck_card(
+        card,
+        board(FIVE_PRIMARY, captured_at=LATER),
+        prices(two=-110, three=180, captured_at=LATER),
+        rechecked_at=LATER,
+    )
+
+
+def place(ledger, card, ticket_key, *, recheck=None, **kwargs):
+    """Record a model-designated placement with the mandatory re-check supplied."""
+    defaults = dict(
+        sportsbook="BookX", american_odds="-110", placed_at=PLACED_AT,
+        recorded_by="operator",
+    )
+    defaults.update(kwargs)
+    return ledger.record(card, ticket_key,
+                         recheck=recheck if recheck is not None else valid_recheck(card),
+                         **defaults)
+
+
 # ---- 18-22. re-check --------------------------------------------------------------------
 
 
@@ -169,10 +191,7 @@ def test_a_proposed_card_creates_no_placement(tmp_path, card):
 def test_placement_requires_an_explicit_call(tmp_path, card):
     ledger = PlacementLedger(tmp_path / "p.jsonl")
     ticket = card.selected_tickets[0]
-    record = ledger.record(
-        card, ticket.ticket_key, sportsbook="BookX", american_odds="-110",
-        placed_at=PLACED_AT, recorded_by="operator",
-    )
+    record = place(ledger, card, ticket.ticket_key)
     assert len(ledger.entries()) == 1
     assert record.counts_toward_model
     assert record.placement_id.startswith("plc_2026w03_")
@@ -182,26 +201,23 @@ def test_an_unproposed_ticket_cannot_be_model_designated(tmp_path, card):
     ledger = PlacementLedger(tmp_path / "p.jsonl")
     unproposed = next(t for t in card.tickets if not t.selected)
     with pytest.raises(PlacementRefused, match="NOT on the proposed card"):
-        ledger.record(card, unproposed.ticket_key, sportsbook="BookX",
-                      american_odds="-110", placed_at=PLACED_AT, recorded_by="operator")
+        place(ledger, card, unproposed.ticket_key)
 
 
 def test_an_unknown_ticket_is_refused(tmp_path, card):
     ledger = PlacementLedger(tmp_path / "p.jsonl")
     with pytest.raises(PlacementRefused, match="not on card"):
-        ledger.record(card, "nonsense|key", sportsbook="BookX", american_odds="-110",
-                      placed_at=PLACED_AT, recorded_by="operator")
+        place(ledger, card, "nonsense|key")
 
 
 def test_exposure_cap_blocks_a_third_unit_on_one_leg(tmp_path, card):
     ledger = PlacementLedger(tmp_path / "p.jsonl")
     ticket = card.selected_tickets[0]
+    check = valid_recheck(card)
     for _ in range(2):
-        ledger.record(card, ticket.ticket_key, sportsbook="BookX", american_odds="-110",
-                      placed_at=PLACED_AT, recorded_by="operator")
+        place(ledger, card, ticket.ticket_key, recheck=check)
     with pytest.raises(ExposureCapViolation, match="2-unit weekly cap"):
-        ledger.record(card, ticket.ticket_key, sportsbook="BookX", american_odds="-110",
-                      placed_at=PLACED_AT, recorded_by="operator")
+        place(ledger, card, ticket.ticket_key, recheck=check)
     assert max(ledger.current_exposure(2026, 3).values()) <= 2
 
 
@@ -226,9 +242,7 @@ def test_a_ticket_discarded_at_recheck_cannot_be_placed(tmp_path, card):
                           rechecked_at=LATER)
     discarded = result.discarded[0]
     with pytest.raises(PlacementRefused, match="DISCARDED at re-check"):
-        ledger.record(card, discarded.ticket_key, sportsbook="BookX",
-                      american_odds="-110", placed_at=PLACED_AT,
-                      recorded_by="operator", recheck=result)
+        place(ledger, card, discarded.ticket_key, recheck=result)
 
 
 def test_a_validated_ticket_can_be_placed_with_the_recheck_attached(tmp_path, card):
@@ -236,13 +250,10 @@ def test_a_validated_ticket_can_be_placed_with_the_recheck_attached(tmp_path, ca
     new_market = board(moved("NE", spread="3.0"), captured_at=LATER)
     result = recheck_card(card, new_market, prices(two=-110, three=180, captured_at=LATER),
                           rechecked_at=LATER)
-    if result.validated:
-        record = ledger.record(
-            card, result.validated[0].ticket_key, sportsbook="BookX",
-            american_odds="-110", placed_at=PLACED_AT, recorded_by="operator",
-            recheck=result,
-        )
-        assert record.counts_toward_model
+    assert result.validated, "the fixture should leave at least one ticket valid"
+    record = place(ledger, card, result.validated[0].ticket_key, recheck=result)
+    assert record.counts_toward_model
+    assert record.recheck_id == result.recheck_id
 
 
 def test_a_ticket_absent_from_the_recheck_is_refused(tmp_path, card):
@@ -253,19 +264,16 @@ def test_a_ticket_absent_from_the_recheck_is_refused(tmp_path, card):
                           rechecked_at=LATER, tickets_to_check=keys)
     other = next(t for t in card.selected_tickets if t.ticket_key not in keys)
     with pytest.raises(PlacementRefused, match="not covered by re-check"):
-        ledger.record(card, other.ticket_key, sportsbook="BookX", american_odds="-110",
-                      placed_at=PLACED_AT, recorded_by="operator", recheck=result)
+        place(ledger, card, other.ticket_key, recheck=result)
 
 
 def test_placement_requires_a_book_and_a_positive_stake(tmp_path, card):
     ledger = PlacementLedger(tmp_path / "p.jsonl")
     ticket = card.selected_tickets[0]
     with pytest.raises(PlacementRefused):
-        ledger.record(card, ticket.ticket_key, sportsbook="  ", american_odds="-110",
-                      placed_at=PLACED_AT, recorded_by="operator")
+        place(ledger, card, ticket.ticket_key, sportsbook="  ")
     with pytest.raises(PlacementRefused):
-        ledger.record(card, ticket.ticket_key, sportsbook="BookX", american_odds="-110",
-                      placed_at=PLACED_AT, recorded_by="operator", stake_units=0)
+        place(ledger, card, ticket.ticket_key, stake_units=0)
 
 
 # ---- 26-27. settlement ------------------------------------------------------------------
@@ -274,9 +282,7 @@ def test_placement_requires_a_book_and_a_positive_stake(tmp_path, card):
 def test_model_grading_is_separate_from_book_settlement(tmp_path, card):
     ledger = PlacementLedger(tmp_path / "p.jsonl")
     ticket = card.selected_tickets[0]
-    placement = ledger.record(card, ticket.ticket_key, sportsbook="BookX",
-                              american_odds="-110", placed_at=PLACED_AT,
-                              recorded_by="operator")
+    placement = place(ledger, card, ticket.ticket_key)
     legs = tuple(
         grade_leg_settlement(leg_id=leg_id, team=leg_id.split("-")[-1],
                              teased_spread="7.5", final_margin=3)
@@ -294,9 +300,7 @@ def test_model_grading_is_separate_from_book_settlement(tmp_path, card):
 def test_a_cancelled_game_records_the_books_own_result(tmp_path, card):
     ledger = PlacementLedger(tmp_path / "p.jsonl")
     ticket = card.selected_tickets[0]
-    placement = ledger.record(card, ticket.ticket_key, sportsbook="BookX",
-                              american_odds="-110", placed_at=PLACED_AT,
-                              recorded_by="operator")
+    placement = place(ledger, card, ticket.ticket_key)
     legs = tuple(
         grade_leg_settlement(leg_id=leg_id, team="X", teased_spread="7.5", final_margin=-20)
         for leg_id in placement.leg_ids
@@ -311,9 +315,7 @@ def test_a_cancelled_game_records_the_books_own_result(tmp_path, card):
 def test_profit_is_derived_from_the_recorded_price_on_a_win(tmp_path, card):
     ledger = PlacementLedger(tmp_path / "p.jsonl")
     ticket = card.selected_tickets[0]
-    placement = ledger.record(card, ticket.ticket_key, sportsbook="BookX",
-                              american_odds="-110", placed_at=PLACED_AT,
-                              recorded_by="operator")
+    placement = place(ledger, card, ticket.ticket_key)
     legs = tuple(
         grade_leg_settlement(leg_id=leg_id, team="X", teased_spread="7.5", final_margin=3)
         for leg_id in placement.leg_ids
@@ -337,9 +339,7 @@ def test_an_invalid_book_settlement_is_refused(tmp_path, card):
 
     ledger = PlacementLedger(tmp_path / "p.jsonl")
     ticket = card.selected_tickets[0]
-    placement = ledger.record(card, ticket.ticket_key, sportsbook="BookX",
-                              american_odds="-110", placed_at=PLACED_AT,
-                              recorded_by="operator")
+    placement = place(ledger, card, ticket.ticket_key)
     legs = (grade_leg_settlement(leg_id="g", team="A", teased_spread="7.5", final_margin=3),)
     with pytest.raises(MarketValidationError):
         settle_ticket(placement=placement.to_dict(), legs=legs,

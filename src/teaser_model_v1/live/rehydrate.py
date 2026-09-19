@@ -194,5 +194,14 @@ def recheck_from_dict(payload: dict):
         new_price_snapshot_id=payload["new_price_snapshot_id"],
         tickets=tickets,
         rebuilt_card=None,
+        new_market_captured_at=(
+            datetime.fromisoformat(payload["new_market_captured_at"])
+            if payload.get("new_market_captured_at") else None
+        ),
+        new_price_captured_at=(
+            datetime.fromisoformat(payload["new_price_captured_at"])
+            if payload.get("new_price_captured_at") else None
+        ),
+        leg_kickoffs=dict(payload.get("leg_kickoffs", {})),
         recheck_id=payload.get("recheck_id", ""),
     )

@@ -62,7 +62,7 @@ Three independent changes, chosen to exercise three different failure paths:
 
 ## Step 4 — placement-time re-check
 
-Re-check `rck_2026w03_d6fd890a4caf` — overall verdict: **DISCARD — REBUILD REQUIRED**
+Re-check `rck_2026w03_794f3733a0ae` — overall verdict: **DISCARD — REBUILD REQUIRED**
 
 | Ticket | Verdict | Reason |
 |---|---|---|
@@ -93,13 +93,18 @@ The worsened 3-team price is visible here: every 3-team ticket is re-evaluated a
 
 Tickets that survived the re-check: `2026_03_BUF_MIA-MIA|2026_03_DAL_PHI-PHI`
 
-Guard rails exercised before any successful record:
+### Phase 4.1 gates, exercised in order
 
-- a ticket DISCARDED at re-check is refused: `ticket 2026_03_BUF_MIA-MIA|2026_03_NYJ_NE-NE was DISCARDED at re-check rck_2026w03_d6fd890a4caf: 2026_03_NYJ_NE-NE: line moved to 3.0, which is not primary geometry. A discarded ticket is never reused, substituted or downgraded — rebuild from the current board.`
-- recorded placement `plc_2026w03_ff9ca5d6c62c` for ticket `2026_03_BUF_MIA-MIA|2026_03_DAL_PHI-PHI` at SYNTHETIC_BOOK -120, stake 1.0u
-- the 2-unit exposure cap refuses a further placement: `this placement would exceed the frozen 2-unit weekly cap on 2026_03_BUF_MIA-MIA (3.0 units), 2026_03_DAL_PHI-PHI (3.0 units). Record it as EXTERNAL_NON_MODEL if you placed it outside the model.`
+- **A. no re-check** -> refused: `a model-designated placement requires a placement-time re-check. Run `recheck` against a current market and teaser-price snapshot and pass its id. There is no override: record the wager as EXTERNAL_NON_MODEL if you placed it without re-checking.`
+- **B. discarded re-check** -> refused: `ticket 2026_03_BUF_MIA-MIA|2026_03_NYJ_NE-NE was DISCARDED at re-check rck_2026w03_794f3733a0ae: 2026_03_NYJ_NE-NE: line moved to 3.0, which is not primary geometry; 2026_03_NYJ_NE-NE: leg is no longer on the LIVE track. A discarded ticket is never reused, substituted or downgraded — rebuild from the current board.`
+- **C. valid re-check** -> accepted: placement `plc_2026w03_618e44810ee4` for `2026_03_BUF_MIA-MIA|2026_03_DAL_PHI-PHI` at SYNTHETIC_BOOK -120, stake 1.0u (re-check `rck_2026w03_794f3733a0ae`)
+- **exposure cap** -> refused a further placement: `this placement would exceed the frozen 2-unit weekly cap on 2026_03_BUF_MIA-MIA (3.0 units), 2026_03_DAL_PHI-PHI (3.0 units). Record it as EXTERNAL_NON_MODEL if you placed it outside the model.`
+- **D. after kickoff** -> pregame gate: `leg 2026_03_BUF_MIA-MIA kicked off at 2026-09-20T13:00:00-04:00; placement at 2026-09-20T13:02:00-04:00 is not pregame. v1.0 is a pregame model and will not price a wager off a live market. If one leg of a multi-team ticket has started, the whole ticket is refused.`
+- **external non-model** -> recorded `plc_2026w03_ea4f47b748f3`, excluded from every v1.0 figure
 
-> **PROPOSED is never PLACED.** Every row above exists only because an operator explicitly recorded it. This software submitted nothing to any sportsbook.
+Refused attempts logged (no placement created): **3**. They live in `refusals.jsonl`, separate from the placement ledger, so a refused attempt can never be mistaken for a wager.
+
+> **PROPOSED is never PLACED**, and there is **no override**: a model-designated placement that fails any gate cannot be forced through. This software submitted nothing to any sportsbook.
 
 ## Step 7 — market-quality trail
 
@@ -122,7 +127,7 @@ Line movement grading -> final observed: **0.0**.
 
 No leg graded PUSH, as the half-point geometry guarantees; the settlement code raises rather than absorbing one if it ever appears.
 
-Settlement `stl_2026w03_9be25fc3e1b2`:
+Settlement `stl_2026w03_084e97860fc0`:
 
 | Field | Value |
 |---|---|
@@ -135,7 +140,9 @@ The model grade and the sportsbook settlement are stored in **separate fields** 
 
 When they disagree — a book voiding or cancelling a wager the model graded a winner — both stand as recorded, the P/L follows the book, and no generic reconciliation rule is invented. `book_settlement` accepts VOID and CANCELLED for exactly that case; a dedicated test covers it.
 
-## Step 9 — append-only season ledger
+## Step 9 — append-only season ledger, derived automatically
+
+**E.** The grading record above was written once, at grading time, with `placed_tickets = 0`. It has not been touched since. Everything below is derived from the append-only placement and settlement ledgers at the moment status is requested — **no operator re-recording step**.
 
 | Metric | Value |
 |---|---|
@@ -147,14 +154,21 @@ When they disagree — a book voiding or cancelling a wager the model graded a w
 | total_qualifying_legs | 5 |
 | total_positive_ev_tickets | 9 |
 | total_proposed_tickets | 3 |
-| total_placed_tickets | 1 |
-| total_units_staked | 1.0 |
+| total_placed_tickets | 2 |
+| total_units_staked | 2.0 |
 | total_wins | 1 |
 | total_losses | 0 |
+| total_voided_or_cancelled | 0 |
+| settled_tickets | 1 |
+| unsettled_tickets | 1 |
 | total_profit_loss_units | 0.8333333333333334 |
-| model_expected_wins | 0.56730756512456 |
+| model_expected_wins | 1.13461513024912 |
+| external_non_model_placements | 1 |
+| refused_attempts | 3 |
 
-Week 4 was recorded with **zero** qualifying legs and zero bets. Empty weeks appear in the ledger exactly like active ones — omitting them would build survivorship bias into the prospective record by construction.
+The immutable grading row still reads `placed_tickets = 0`, `units_staked = 0.0` — unchanged — while the derived status reports **2 placed** and **2.0 unit(s) staked**. That is the point: the record of what the model saw never drifts, and the record of what happened is always current.
+
+Week 4 was recorded with **zero** qualifying legs and zero bets. Empty weeks appear exactly like active ones — omitting them would build survivorship bias into the prospective record by construction.
 
 ## Step 10 — audit trail
 
@@ -166,12 +180,16 @@ Every record written during this rehearsal, none of which overwrote another:
 | teaser_price_snapshot | `prc_2026w03_1032353df2e1` |
 | market_snapshot | `mkt_2026w03_be2b4033a527` |
 | teaser_price_snapshot | `prc_2026w03_18835ed5ce4d` |
+| market_snapshot | `mkt_2026w03_9f5edba038d5` |
+| teaser_price_snapshot | `prc_2026w03_ef5426114205` |
 | weekly_card | `card_2026w03_3edca218c507` |
-| recheck | `rck_2026w03_d6fd890a4caf` |
+| recheck | `rck_2026w03_794f3733a0ae` |
 | weekly_card | `card_2026w03_ed0ac031bc53` |
-| settlement | `stl_2026w03_9be25fc3e1b2` |
-| placement | `plc_2026w03_ff9ca5d6c62c` |
-| placement | `plc_2026w03_736e2b5c3dd8` |
+| recheck | `rck_2026w03_a45ce5298882` |
+| settlement | `stl_2026w03_084e97860fc0` |
+| placement | `plc_2026w03_618e44810ee4` |
+| placement | `plc_2026w03_9c9da3f0dbb4` |
+| placement | `plc_2026w03_ea4f47b748f3` |
 
 Re-offering the grading snapshot returned **already present (no-op)** — content-addressed ids make duplicate capture idempotent, and differing content can never collide with an earlier record.
 
@@ -181,5 +199,5 @@ Rendered to `reports/live/nfl_2026_week_03_rehearsal.md`.
 
 ---
 
-**Rehearsal complete.** Every transition the live system must handle was exercised against fabricated data: grading, a geometry break, a guardrail breach, a price move, discard, rebuild, explicit placement, a refused over-cap placement, and a settlement where the book disagreed with the model. No real market data was used and no wager was placed.
+**Rehearsal complete.** Every transition the live system must handle was exercised against fabricated data: grading, a geometry break, a guardrail breach, a price move, discard, rebuild, explicit placement, a refused over-cap placement, a refused no-re-check attempt, a refused discarded-re-check attempt, a refused post-kickoff attempt, an accepted placement under a valid re-check, a refused over-cap placement, an external non-model entry, settlement, and a season status derived automatically from the event ledgers. No real market data was used and no wager was placed.
 

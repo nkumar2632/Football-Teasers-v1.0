@@ -19,7 +19,7 @@ sportsbook's settlement of a wager that was actually placed.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from teaser_model_v1.engine.classification import classify
@@ -115,6 +115,12 @@ class RecheckResult:
     new_price_snapshot_id: str
     tickets: tuple
     rebuilt_card: WeeklyCard | None
+    #: Capture times of the snapshots this re-check validated against. Placement uses
+    #: these to prove the evidence was current and pre-kickoff.
+    new_market_captured_at: datetime | None = None
+    new_price_captured_at: datetime | None = None
+    #: leg_id -> kickoff (ISO-8601) as of the CURRENT board.
+    leg_kickoffs: dict = field(default_factory=dict)
     recheck_id: str = ""
 
     def __post_init__(self) -> None:
@@ -135,6 +141,13 @@ class RecheckResult:
             "original_price_snapshot_id": self.original_price_snapshot_id,
             "new_market_snapshot_id": self.new_market_snapshot_id,
             "new_price_snapshot_id": self.new_price_snapshot_id,
+            "new_market_captured_at": (
+                iso(self.new_market_captured_at) if self.new_market_captured_at else ""
+            ),
+            "new_price_captured_at": (
+                iso(self.new_price_captured_at) if self.new_price_captured_at else ""
+            ),
+            "leg_kickoffs": dict(sorted(self.leg_kickoffs.items())),
             "tickets": [ticket.to_dict() for ticket in self.tickets],
         }
 
@@ -160,6 +173,19 @@ class RecheckResult:
     @property
     def overall(self) -> str:
         return DISCARD_REBUILD if self.any_discarded else VALIDATED
+
+    def verdict_for(self, ticket_key: str) -> str | None:
+        """The verdict recorded for one ticket, or None if it was not re-checked."""
+        for ticket in self.tickets:
+            if ticket.ticket_key == ticket_key:
+                return ticket.verdict
+        return None
+
+    def reasons_for(self, ticket_key: str) -> tuple:
+        for ticket in self.tickets:
+            if ticket.ticket_key == ticket_key:
+                return ticket.reasons
+        return ()
 
 
 def _quote_index(market: MarketSnapshot) -> dict:
@@ -310,4 +336,7 @@ def recheck_card(
         new_price_snapshot_id=new_prices.snapshot_id if new_prices else "",
         tickets=tuple(checked),
         rebuilt_card=rebuilt,
+        new_market_captured_at=new_market.captured_at,
+        new_price_captured_at=new_prices.captured_at if new_prices else None,
+        leg_kickoffs={quote.leg_key: iso(quote.kickoff) for quote in new_market.quotes},
     )

@@ -92,9 +92,25 @@ python src/teaser_model_v1/cli/live.py record-placement \
     --placed-at 2026-09-20T12:45:00-04:00 --by yourname
 ```
 
-Pass `--recheck`: a ticket the re-check discarded is refused. The 2-unit per-leg cap is
-enforced here too. A wager you made outside the model goes in with `--external` and is
-excluded from every v1.0 performance number.
+**`--recheck` is mandatory for a model-designated placement, and there is no override.**
+The command validates before writing anything and refuses — with the reason — if:
+
+- no re-check is supplied;
+- the re-check is for a different card, or does not cover this ticket;
+- a newer re-check for this ticket exists;
+- the ticket was **DISCARDED**;
+- the re-check used the grading snapshot rather than a later board;
+- it had no teaser price, or the price was not captured close to the re-check;
+- the re-check is more than **30 minutes** old at the moment of placement;
+- **any constituent game has kicked off** — placement, the market snapshot and the price
+  snapshot must all strictly precede every leg's kickoff. Exactly at kickoff fails. One
+  started leg of a 3-team ticket fails the whole ticket;
+- the 2-unit per-leg cap would be exceeded.
+
+A refused attempt is logged in `refusals.jsonl` and creates **no placement record**.
+
+A wager you made outside the model goes in with `--external`. It skips the model gates,
+is recorded for completeness, and is excluded from every v1.0 performance number.
 
 **PROPOSED is never PLACED.** If you do not run this command, nothing was bet.
 
@@ -119,8 +135,12 @@ P/L via `--profit-loss`. No generic rule reconciles them.
 ### 8. Check the season
 
 ```bash
-python src/teaser_model_v1/cli/live.py season-status --season 2026
+python src/teaser_model_v1/cli/live.py season-status --season 2026 [--by-week]
 ```
+
+Placement counts, units, wins/losses and P/L are **derived from the append-only placement
+and settlement ledgers every time you run this.** You never need to re-record a week to
+synchronise it; the immutable grading record stays exactly as written.
 
 ---
 

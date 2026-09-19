@@ -39,7 +39,12 @@ from teaser_model_v1.live.ledger import (  # noqa: E402
     WeekLedgerEntry,
     line_movement,
 )
-from teaser_model_v1.live.placement import ExposureCapViolation, PlacementRefused  # noqa: E402
+from teaser_model_v1.live.placement import (  # noqa: E402
+    EXTERNAL_NON_MODEL,
+    ExposureCapViolation,
+    PlacementRefused,
+    PostKickoffPlacement,
+)
 from teaser_model_v1.live.provenance import iso  # noqa: E402
 from teaser_model_v1.live.recheck import recheck_card  # noqa: E402
 from teaser_model_v1.live.report import render_weekly_report  # noqa: E402
@@ -65,6 +70,7 @@ KICKOFF = datetime(2026, 9, 20, 13, 0, tzinfo=EASTERN)
 T_GRADE = datetime(2026, 9, 19, 10, 0, tzinfo=EASTERN)
 T_RECHECK = datetime(2026, 9, 20, 12, 40, tzinfo=EASTERN)
 T_PLACE = datetime(2026, 9, 20, 12, 45, tzinfo=EASTERN)
+T_LATE_RECHECK = datetime(2026, 9, 20, 12, 55, tzinfo=EASTERN)
 T_FINAL_OBS = datetime(2026, 9, 20, 12, 58, tzinfo=EASTERN)
 T_SETTLE = datetime(2026, 9, 20, 16, 30, tzinfo=EASTERN)
 
@@ -301,12 +307,29 @@ def main() -> int:
 
     validated_keys = [ticket.ticket_key for ticket in recheck.validated]
     add(
-        f"Tickets that survived the re-check: "
+        "Tickets that survived the re-check: "
         + (", ".join(f"`{key}`" for key in validated_keys) if validated_keys else "none")
     )
     add("")
-    add("Guard rails exercised before any successful record:")
+    add("### Phase 4.1 gates, exercised in order")
     add("")
+
+    target = validated_keys[0] if validated_keys else None
+
+    # --- A. model placement with NO re-check -----------------------------------------
+    if target:
+        try:
+            ledger.record(
+                active_card, target, sportsbook=BOOK, american_odds="-120",
+                placed_at=T_PLACE, recorded_by="rehearsal",
+            )
+            add("- **A. UNEXPECTED**: a model placement without a re-check was accepted.")
+        except PlacementRefused as exc:
+            ledger.log_refusal(card=active_card, ticket_key=target, placed_at=T_PLACE,
+                               reason=str(exc), attempted_by="rehearsal")
+            add(f"- **A. no re-check** -> refused: `{exc}`")
+
+    # --- B. model placement using a DISCARDED re-check --------------------------------
     discarded_key = recheck.discarded[0].ticket_key if recheck.discarded else None
     if discarded_key:
         try:
@@ -314,10 +337,14 @@ def main() -> int:
                 active_card, discarded_key, sportsbook=BOOK, american_odds="-120",
                 placed_at=T_PLACE, recorded_by="rehearsal", recheck=recheck,
             )
-            add("- **UNEXPECTED**: a discarded ticket was accepted.")
+            add("- **B. UNEXPECTED**: a discarded ticket was accepted.")
         except PlacementRefused as exc:
-            add(f"- a ticket DISCARDED at re-check is refused: `{exc}`")
+            ledger.log_refusal(card=active_card, ticket_key=discarded_key,
+                               placed_at=T_PLACE, reason=str(exc),
+                               attempted_by="rehearsal")
+            add(f"- **B. discarded re-check** -> refused: `{exc}`")
 
+    # --- C. valid, fresh re-check ------------------------------------------------------
     for key in validated_keys:
         view = active_card.ticket(key)
         record = ledger.record(
@@ -325,12 +352,13 @@ def main() -> int:
             american_odds=view.offered_american, placed_at=T_PLACE,
             recorded_by="rehearsal_operator", book_reference="SYN-12345",
             notes="fabricated rehearsal placement", recheck=recheck,
+            known_rechecks=[recheck],
         )
         placed.append(record)
         add(
-            f"- recorded placement `{record.placement_id}` for ticket "
+            f"- **C. valid re-check** -> accepted: placement `{record.placement_id}` for "
             f"`{record.ticket_key}` at {record.sportsbook} {record.american_odds}, "
-            f"stake {record.stake_units}u"
+            f"stake {record.stake_units}u (re-check `{record.recheck_id}`)"
         )
 
     if placed:
@@ -340,15 +368,71 @@ def main() -> int:
                 ledger.record(
                     active_card, chosen_key, sportsbook=BOOK,
                     american_odds=active_card.ticket(chosen_key).offered_american,
-                    placed_at=T_PLACE, recorded_by="rehearsal_operator", recheck=recheck,
+                    placed_at=T_PLACE, recorded_by="rehearsal_operator",
+                    recheck=recheck, known_rechecks=[recheck],
                 )
             add("- **UNEXPECTED**: the 2-unit exposure cap did not bind.")
         except ExposureCapViolation as exc:
-            add(f"- the 2-unit exposure cap refuses a further placement: `{exc}`")
+            add(f"- **exposure cap** -> refused a further placement: `{exc}`")
+
+    # --- D. model placement AFTER kickoff ----------------------------------------------
+    # A deliberately FRESH re-check taken minutes before kickoff, so the staleness gate
+    # passes and the pregame gate is the binding one.
+    late_market = MarketSnapshot(
+        season=SEASON, week=WEEK, captured_at=T_LATE_RECHECK, sportsbook=BOOK,
+        ingestion_method="synthetic_rehearsal",
+        quotes=quotes_for(moved_board, T_LATE_RECHECK), label="pre-kickoff",
+    )
+    late_prices = price_snapshot(T_LATE_RECHECK, -120, 120, "pre-kickoff")
+    workspace.snapshots.put(late_market.snapshot_id, late_market.to_dict(),
+                            kind="market_snapshot")
+    workspace.snapshots.put(late_prices.snapshot_id, late_prices.to_dict(),
+                            kind="teaser_price_snapshot")
+    late_recheck = recheck_card(card_1, late_market, late_prices,
+                                rechecked_at=T_LATE_RECHECK)
+    workspace.cards.put(late_recheck.recheck_id, late_recheck.to_dict(), kind="recheck")
+
+    late_validated = [t.ticket_key for t in late_recheck.validated]
+    if late_validated:
+        after_kickoff = KICKOFF + timedelta(minutes=2)
+        try:
+            ledger.record(
+                active_card, late_validated[0], sportsbook=BOOK, american_odds="-120",
+                placed_at=after_kickoff, recorded_by="rehearsal",
+                recheck=late_recheck, known_rechecks=[late_recheck],
+            )
+            add("- **D. UNEXPECTED**: a post-kickoff placement was accepted.")
+        except PlacementRefused as exc:
+            ledger.log_refusal(card=active_card, ticket_key=late_validated[0],
+                               placed_at=after_kickoff, reason=str(exc),
+                               attempted_by="rehearsal")
+            kind = ("pregame gate" if isinstance(exc, PostKickoffPlacement)
+                    else "refused")
+            add(f"- **D. after kickoff** -> {kind}: `{exc}`")
+
+    # --- external non-model wager, still recordable -------------------------------------
+    if discarded_key:
+        external = ledger.record(
+            active_card, discarded_key, sportsbook=BOOK, american_odds="-120",
+            placed_at=T_PLACE, recorded_by="rehearsal_operator",
+            designation=EXTERNAL_NON_MODEL,
+            notes="fabricated: placed outside the model",
+        )
+        add(
+            f"- **external non-model** -> recorded `{external.placement_id}`, excluded "
+            "from every v1.0 figure"
+        )
     add("")
     add(
-        "> **PROPOSED is never PLACED.** Every row above exists only because an operator "
-        "explicitly recorded it. This software submitted nothing to any sportsbook."
+        f"Refused attempts logged (no placement created): "
+        f"**{len(ledger.refusals())}**. They live in `refusals.jsonl`, separate from the "
+        "placement ledger, so a refused attempt can never be mistaken for a wager."
+    )
+    add("")
+    add(
+        "> **PROPOSED is never PLACED**, and there is **no override**: a model-designated "
+        "placement that fails any gate cannot be forced through. This software submitted "
+        "nothing to any sportsbook."
     )
     add("")
 
@@ -451,28 +535,24 @@ def main() -> int:
         add("Nothing was placed, so there is nothing to settle.")
     add("")
 
-    # ---- Step 9: season ledger ---------------------------------------------------------
-    ledger_entry = WeekLedgerEntry(
-        season=SEASON, week=WEEK, recorded_at=T_SETTLE,
-        games_scanned=active_card.games_scanned,
-        qualifying_primary_legs=active_card.n_qualifying,
-        top_four_legs=len(active_card.top_legs),
-        positive_ev_tickets=active_card.n_positive_ev,
-        proposed_tickets=len(active_card.selected_tickets),
-        placed_tickets=len(placed),
-        units_staked=float(sum(p.stake_units for p in placed)),
-        market_snapshot_id=market_2.snapshot_id,
-        price_snapshot_id=prices_2.snapshot_id,
-        card_id=active_card.card_id, card_status=active_card.status,
-        wins=len(placed), losses=0, settled_tickets=len(placed),
-        profit_loss_units=float(sum(p.stake_units * (100 / 120) for p in placed)),
-        sum_p_ticket=float(sum(float(p.p_ticket) for p in placed)),
-        notes="synthetic rehearsal; one validated ticket placed and settled",
-    )
+    # ---- Step 9: season ledger, derived ------------------------------------------------
     season_ledger = workspace.season_ledger
-    season_ledger.record_week(ledger_entry)
-
-    # An empty week, to prove zero weeks are recorded rather than omitted.
+    season_ledger.record_week(
+        WeekLedgerEntry(
+            season=SEASON, week=WEEK, recorded_at=T_GRADE,
+            games_scanned=active_card.games_scanned,
+            qualifying_primary_legs=active_card.n_qualifying,
+            top_four_legs=len(active_card.top_legs),
+            positive_ev_tickets=active_card.n_positive_ev,
+            proposed_tickets=len(active_card.selected_tickets),
+            # Grading facts only. Placement and settlement are derived at read time.
+            placed_tickets=0, units_staked=0.0,
+            market_snapshot_id=market_1.snapshot_id,
+            price_snapshot_id=prices_1.snapshot_id,
+            card_id=active_card.card_id, card_status=active_card.status,
+            notes="grading record; placement/settlement derived from the event ledgers",
+        )
+    )
     season_ledger.record_week(
         WeekLedgerEntry(
             season=SEASON, week=WEEK + 1, recorded_at=T_SETTLE, games_scanned=14,
@@ -482,18 +562,41 @@ def main() -> int:
         )
     )
 
-    add("## Step 9 — append-only season ledger")
+    add("## Step 9 — append-only season ledger, derived automatically")
     add("")
-    status = season_ledger.season_status(SEASON)
+    add(
+        "**E.** The grading record above was written once, at grading time, with "
+        "`placed_tickets = 0`. It has not been touched since. Everything below is derived "
+        "from the append-only placement and settlement ledgers at the moment status is "
+        "requested — **no operator re-recording step**."
+    )
+    add("")
+    all_placements = ledger.entries(SEASON)
+    all_settlements = workspace.all_settlements(SEASON)
+    status = season_ledger.season_status(
+        SEASON, placements=all_placements, settlements=all_settlements
+    )
+    status["refused_attempts"] = len(ledger.refusals(SEASON))
     add("| Metric | Value |")
     add("|---|---|")
     for key, value in status.items():
         add(f"| {key} | {value} |")
     add("")
+    stored_grading = season_ledger.latest_per_week(SEASON)[0]
     add(
-        f"Week {WEEK + 1} was recorded with **zero** qualifying legs and zero bets. "
-        "Empty weeks appear in the ledger exactly like active ones — omitting them would "
-        "build survivorship bias into the prospective record by construction."
+        f"The immutable grading row still reads "
+        f"`placed_tickets = {stored_grading['placed_tickets']}`, "
+        f"`units_staked = {stored_grading['units_staked']}` — unchanged — while the "
+        f"derived status reports **{status['total_placed_tickets']} placed** and "
+        f"**{status['total_units_staked']} unit(s) staked**. That is the point: the "
+        "record of what the model saw never drifts, and the record of what happened is "
+        "always current."
+    )
+    add("")
+    add(
+        f"Week {WEEK + 1} was recorded with **zero** qualifying legs and zero bets. Empty "
+        "weeks appear exactly like active ones — omitting them would build survivorship "
+        "bias into the prospective record by construction."
     )
     add("")
 
@@ -544,8 +647,11 @@ def main() -> int:
         "**Rehearsal complete.** Every transition the live system must handle was "
         "exercised against fabricated data: grading, a geometry break, a guardrail breach, "
         "a price move, discard, rebuild, explicit placement, a refused over-cap placement, "
-        "and a settlement where the book disagreed with the model. No real market data was "
-        "used and no wager was placed."
+        "a refused no-re-check attempt, a refused discarded-re-check attempt, a refused "
+        "post-kickoff attempt, an accepted placement under a valid re-check, a refused "
+        "over-cap placement, an external non-model entry, settlement, and a season status "
+        "derived automatically from the event ledgers. No real market data was used and "
+        "no wager was placed."
     )
     add("")
 

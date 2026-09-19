@@ -184,7 +184,38 @@ A fourth, found by the isolation tests: `live/schemas.py` **duplicated** the fro
 `TEASER_POINTS` rather than importing it, which could have drifted out of step with the
 specification. It now imports the engine constant.
 
-## 12. Limitations
+## 12. Phase 4.1 hardening
+
+Three operational gaps were closed before any real use.
+
+**Mandatory re-check.** A MODEL_DESIGNATED placement now requires a re-check, validated
+through ten gates in `PlacementLedger.validate_model_placement`: the ticket was proposed;
+a re-check is supplied; it belongs to this card and covers this ticket; it is the most
+recent applicable one; its verdict is VALIDATED; it used a genuinely later market snapshot
+than grading; it used a contemporaneous actual teaser price; it is not stale at the moment
+of placement; everything precedes kickoff; and the exposure cap holds. **No override
+parameter exists** — a test asserts that no `force`, `allow_unproposed`, `override` or
+`skip_recheck` parameter is present. The CLI validates before writing anything and exits
+non-zero on refusal. EXTERNAL_NON_MODEL wagers remain recordable without a re-check and
+stay excluded from every v1.0 figure.
+
+**Pregame enforcement.** v1.0 is a pregame model. `placed_at`, the validating market
+snapshot and the teaser-price snapshot must each strictly precede kickoff for **every**
+constituent game. Exactly at kickoff fails, because the game has started. One started leg
+fails the whole ticket. Kickoffs are taken from the current board where the re-check
+supplies them, falling back to the graded card, and a leg with no recorded kickoff is
+refused rather than assumed pregame.
+
+**Derived season status.** The grading ledger records only what the model saw and proposed,
+written once and never touched again. Placement counts, units, wins, losses, P/L and
+settlement status are derived from the append-only placement and settlement ledgers each
+time status or a weekly report is generated. The operator never re-records a week to
+synchronise it, so operator-state drift is structurally impossible.
+
+**Refusal log.** A refused attempt writes to `refusals.jsonl`, never to the placement
+ledger, so a refused wager can never be mistaken for a placed one.
+
+## 13. Limitations
 
 - **No odds provider is configured.** `MarketProvider` is an abstract interface with no
   implementation; manual CSV entry is the supported path. No credentials are read or
@@ -196,7 +227,8 @@ specification. It now imports the engine constant.
 - **One book per snapshot is assumed.** Mixing books labels the snapshot `MIXED`; the model
   has no opinion about which book's line is authoritative.
 - **CLV is not computed**, by design, until a genuinely documented closing reference exists.
-- **The season ledger is written at grading time** and reflects placements only when
-  re-recorded after placing. `season-status` reads the latest entry per week.
+- **Staleness and contemporaneity windows are 30 minutes** (`MAX_RECHECK_AGE`,
+  `MAX_PRICE_LAG`). These are operational safety margins, not model parameters, and are
+  deliberately conservative.
 - **Kickoff times are captured but not enforced.** Nothing blocks grading or recording after
   kickoff; the timestamps make it visible rather than impossible.

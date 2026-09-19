@@ -129,6 +129,11 @@ week. They **read** the engine and never change it. Rules for that layer:
 - **Timestamps carry an explicit offset**, and half-points stay exact `Decimal` values.
 - **A ticket with no actual captured price has no EV** and is never placement-eligible. A
   hypothetical price can never become a live one.
+- **A model-designated placement requires a current, VALIDATED re-check and a pregame
+  timestamp.** There is no override, and none may be added. A refused attempt is logged
+  separately and creates no placement record.
+- **Placement and settlement status is derived from the event ledgers at read time.** Never
+  copy it into the immutable grading record; that is how operator state drifts.
 - **Do not re-implement a model rule in `live/`.** Geometry, ranking, ticket construction,
   EV and selection all come from `engine/`. A test asserts no live module rebinds a frozen
   constant and that the engine never imports upward.

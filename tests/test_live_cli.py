@@ -245,12 +245,18 @@ def test_the_synthetic_rehearsal_runs_end_to_end(tmp_path):
     for marker in (
         "DISCARD — REBUILD REQUIRED",
         "VALIDATED",
-        "recorded placement",
-        "exposure cap refuses",
-        "DISCARDED at re-check is refused",
         "model_ticket_result",
         "book_settlement",
         "weeks_with_zero_qualifying_legs",
+        # Phase 4.1 gates, cases A-E.
+        "**A. no re-check** -> refused",
+        "**B. discarded re-check** -> refused",
+        "**C. valid re-check** -> accepted",
+        "**D. after kickoff** -> pregame gate",
+        "derived from the append-only placement and settlement ledgers",
+        "exposure cap** -> refused",
+        "external non-model** -> recorded",
+        "Refused attempts logged (no placement created)",
     ):
         assert marker in report, f"rehearsal did not exercise: {marker}"
     assert "UNEXPECTED" not in report
