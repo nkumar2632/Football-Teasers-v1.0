@@ -65,20 +65,41 @@ distribution. Study whether a lookback window or regime split is warranted. Stat
 These were noticed while building the foundation. They are recorded here rather than acted
 on, per `AGENTS.md`.
 
-### R-08 — leg independence assumption in `P_ticket` — EVIDENCE GATHERED
-**Status: `analysed`.** See `reports/phase2b_nfl_2018_2023_validation.md` §5 (Phase 2B).
+### R-08 — leg independence assumption in `P_ticket` — AUDITED (Phase 2C)
+**Status: `analysed`.** See `reports/phase2c_independence_audit.md`,
+`phase2c_monte_carlo.md` and `phase2c_permutation.md`.
 
-`P_ticket` is the product of leg `P_est` values, which assumes independence. Across the
-2018-2023 validation block the realized ticket hit rates **exceeded** the product (2-team
-59.8% vs 56.5% predicted; 3-team 56.2% vs 42.7%), while the very legs those tickets were
-built from hit **below** their own mean `P_est` (72.9% against 75.1%). Those two facts
-together indicate positive correlation between legs within a week: outcomes cluster, so
-all-win weeks occur more often than independence implies. The same direction appears in
-2025 and not in 2024.
+Phase 2B observed realized ticket hit rates above the product of leg `P_est`. Phase 2C
+audited the four candidate explanations over NFL 2018-2025.
 
-Ticket rows are correlated and overlapping and no price exists, so this is a diagnostic,
-not a measured edge. **Do not change §6 of the specification.** Quantifying the correlation
-properly — and what it implies for EV once real prices exist — is the research task.
+* **Sampling variation: not excluded.** A 100,000-draw Monte Carlo null with the exact
+  historical board (ticket set held fixed, so overlap is reproduced exactly) does not
+  reject independence in any block. The observed rates sit inside the 95% simulation
+  interval everywhere.
+* **Ticket overlap: excluded as sole cause.** Overlap is present in the null distributions
+  by construction; it widens them without shifting their centre.
+* **Leg-level miscalibration: excluded as sole cause.** The `r^k` benchmark uses no
+  `P_est`, and the permutation conditions on realized wins; both still show the excess.
+  The legs reaching tickets hit *below* their mean `P_est`, so miscalibration runs against
+  the observed direction.
+* **Genuine positive within-week dependence: weakly supported.** Calibration-neutral
+  permutation gives p = 0.020 (2-team) and p = 0.005 (3-team) for 2018-2023, and an
+  all-win-week excess at p = 0.012 for 2025.
+
+**Overall: WEAK.** The direction reverses in 2024 (negative, clustered interval excluding
+zero); the overlap-free all-win-week statistic and the ticket-weighted statistics
+contradict each other within regimes; the week-size pattern is inconsistent with a common
+weekly shock (2018-2023 two-leg weeks went 9 of 27 against 15.1 expected while four-leg
+weeks went 6 of 9 against 2.9); and nine four-leg weeks carry most of the ticket-level
+signal.
+
+Dog/favorite composition was tested as an alternative channel and does **not** account for
+the excess, both by binning weeks on dog fraction and by permuting within DOG/FAVORITE
+strata (scheme P2).
+
+**No correction is applied and none may be.** `P_ticket` stays the product of `P_est`
+values under §6. Quantifying the correlation properly, and what it would imply for EV once
+real prices exist, remains the research task — for the 2027 preseason review, not before.
 
 ### R-09 — the top-four rule truncates before EV is known
 §8 ranks legs by `P_est` and keeps four, then computes ticket EV. Since ticket price

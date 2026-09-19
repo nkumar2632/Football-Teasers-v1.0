@@ -82,6 +82,7 @@ src/teaser_model_v1/
     calibration.py         Predeclared buckets, Brier, exact binomial intervals.
     backtest.py            Weekly construction and ticket enumeration.
     validation.py          Group comparison and monotonicity for predeclared hypotheses.
+    dependence.py          Independence audit: Monte Carlo null and permutation tests.
 
 scripts/
   ingest_nfl.py            Snapshot the source, build processed games and legs frames.
@@ -89,6 +90,7 @@ scripts/
   investigate_line_composition.py  Season-by-season line-shape provenance report.
   run_phase2_calibration.py  Calibration of P_est against outcomes. No prices, no EV.
   run_phase2b_validation.py  Out-of-sample validation on 2018-2023. No prices, no EV.
+  run_phase2c_independence_audit.py  Audit of the ticket independence assumption.
 
 tests/                     Written before any historical analysis.
 data/raw/                  Verbatim source snapshots plus provenance manifests.
@@ -116,6 +118,7 @@ python scripts/run_data_quality_audit.py                      # the mandatory ga
 python scripts/investigate_line_composition.py                # line-shape provenance
 python scripts/run_phase2_calibration.py                      # calibration (no pricing)
 python scripts/run_phase2b_validation.py                      # 2018-2023 validation
+python scripts/run_phase2c_independence_audit.py              # independence audit
 ```
 
 The audit accepts `--per-season` to apply the gate to each season independently, and
@@ -180,6 +183,11 @@ Phase 2B complete: out-of-sample validation on NFL 2018-2023, with hypotheses de
 before those outcomes were examined. All six seasons pass the unchanged data-quality gate.
 See `reports/phase2b_nfl_2018_2023_validation.md`,
 `reports/phase2b_dog_favorite_validation.md` and `reports/phase2b_total_dependence.md`.
+
+Phase 2C complete: audit of the independence assumption behind `P_ticket`. Evidence for
+positive within-week dependence is **weak** — see
+`reports/phase2c_independence_audit.md` for the evidentiary basis. No correction was
+applied; the frozen ticket formula is unchanged.
 
 **No profitability, EV or ROI figure has been produced.** No historical teaser prices exist
 in the source and none have been invented.

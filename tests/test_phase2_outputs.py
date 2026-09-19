@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -258,3 +259,132 @@ def test_validation_run_is_reproducible(validation_real):
         pd.testing.assert_frame_equal(
             first[key].reset_index(drop=True), second[key].reset_index(drop=True)
         )
+
+
+# ---------------------------------------------------------------------------------------
+# Phase 2C: independence audit outputs.
+# ---------------------------------------------------------------------------------------
+
+phase2c = pytest.mark.skipif(
+    not (PROCESSED / "phase2c_permutation.csv").exists(),
+    reason="Phase 2C not generated; run scripts/run_phase2c_independence_audit.py",
+)
+
+
+@phase2c
+def test_phase2c_simulation_csvs_carry_their_run_metadata():
+    """A reader must be able to audit reproducibility from the CSV alone."""
+    mc = pd.read_csv(PROCESSED / "phase2c_monte_carlo.csv")
+    perm = pd.read_csv(PROCESSED / "phase2c_permutation.csv")
+
+    for frame in (mc, perm):
+        for column in ("n_sims", "seed", "n_legs"):
+            assert column in frame.columns
+        assert (frame["n_sims"] >= 100_000).all()
+        assert frame["seed"].nunique() == 1
+
+    # Permutation integrity fields, without which the scheme cannot be checked.
+    for column in ("scheme", "strata", "permutable_strata", "legs_held_fixed"):
+        assert column in perm.columns
+    assert set(perm["scheme"]) == {"P1", "P2"}
+
+
+@phase2c
+def test_phase2c_permutation_was_not_degenerate_on_the_real_blocks():
+    """Every real block must have had something to permute, or its p-value means nothing."""
+    perm = pd.read_csv(PROCESSED / "phase2c_permutation.csv")
+    assert (perm["permutable_strata"] > 0).all()
+    assert (perm["legs_held_fixed"] == 0).all()
+
+
+@phase2c
+def test_phase2c_p_values_are_within_the_monte_carlo_bounds():
+    for name in ("phase2c_monte_carlo.csv", "phase2c_permutation.csv"):
+        frame = pd.read_csv(PROCESSED / name)
+        # The "leg wins" row is a descriptive distribution, not a test, so it carries no
+        # p-value. Every row that does carry one must respect the +1-corrected bounds.
+        tested = frame[frame["p_value_one_sided"].notna()]
+        assert len(tested) > 0
+        lower = 1.0 / (tested["n_sims"] + 1)
+        assert (tested["p_value_one_sided"] >= lower - 1e-12).all()
+        assert (tested["p_value_one_sided"] <= 1.0).all()
+        assert frame.loc[frame["p_value_one_sided"].isna(), "statistic"].eq(
+            "leg wins"
+        ).all()
+
+
+@phase2c
+def test_phase2c_week_diagnostics_are_internally_consistent():
+    weeks = pd.read_csv(PROCESSED / "phase2c_week_diagnostics.csv")
+    assert (weeks["n_legs"] >= 2).all()
+    assert (weeks["n_dogs"] + weeks["n_favorites"] == weeks["n_legs"]).all()
+    assert (weeks["dog_fraction"].between(0.0, 1.0)).all()
+    # all_win is exactly "every qualifying leg in the week won".
+    assert (weeks["all_win"] == (weeks["wins"] == weeks["n_legs"]).astype(int)).all()
+    assert (weeks["expected_all_win_prob"].between(0.0, 1.0)).all()
+
+
+@phase2c
+def test_phase2c_same_week_pairs_are_different_games_and_same_week():
+    pairs = pd.read_csv(PROCESSED / "phase2c_same_week_pairs.csv")
+    assert len(pairs) > 0
+    assert (pairs["leg_a"] != pairs["leg_b"]).all()
+    assert np.allclose(
+        pairs["resid_product"], pairs["resid_a"] * pairs["resid_b"], atol=1e-12
+    )
+    assert np.allclose(pairs["expected_joint"], pairs["p_a"] * pairs["p_b"], atol=1e-12)
+    assert (pairs["joint_win"] == (pairs["y_a"] * pairs["y_b"])).all()
+
+
+@phase2c
+def test_phase2c_outputs_carry_no_price_ev_or_roi_column():
+    forbidden = ("price", "ev", "roi", "profit", "break_even", "odds", "stake", "unit")
+    for path in PROCESSED.glob("phase2c_*.csv"):
+        for column in [c.lower() for c in pd.read_csv(path, nrows=0).columns]:
+            assert not any(
+                token == column
+                or column.startswith(token + "_")
+                or column.endswith("_" + token)
+                for token in forbidden
+            ), f"{path.name} carries pricing column {column!r}"
+
+
+@phase2c
+def test_phase2c_reports_exist_and_avoid_closing_line_language():
+    for name in (
+        "phase2c_independence_audit.md",
+        "phase2c_monte_carlo.md",
+        "phase2c_permutation.md",
+    ):
+        path = ROOT / "reports" / name
+        assert path.exists(), f"{name} missing"
+        text = path.read_text().lower()
+        assert "true_timestamped_close" not in text
+        for line in text.splitlines():
+            if "closing line" in line:
+                assert "not" in line, f"unqualified 'closing line' in {name}: {line}"
+
+
+@phase2c
+def test_phase2c_monte_carlo_reproduces_on_the_real_board():
+    """Re-running the simulation on the real board must reproduce the published numbers."""
+    from teaser_model_v1.analysis.dependence import make_block, monte_carlo_null
+
+    games = pd.read_csv(PROCESSED / "nfl_games_2024_2025.csv")
+    records = build_leg_records(pd.read_csv(PROCESSED / "nfl_legs_2024_2025.csv"))
+    run = run_season(records, games, 2025)
+    block = make_block("2025", run["qualifying"], run["tickets"])
+
+    published = pd.read_csv(PROCESSED / "phase2c_monte_carlo.csv")
+    row = published[
+        (published["block"] == "2025") & (published["statistic"] == "2-team hit rate")
+    ].iloc[0]
+
+    result = monte_carlo_null(block, n_sims=int(row["n_sims"]), seed=int(row["seed"]))
+    assert result["2team"]["sim_mean"] == pytest.approx(row["sim_mean"], abs=1e-12)
+    assert result["2team"]["p_value_one_sided"] == pytest.approx(
+        row["p_value_one_sided"], abs=1e-12
+    )
+    assert result["2team"]["observed_hit_rate"] == pytest.approx(
+        row["observed_hit_rate"], abs=1e-12
+    )
