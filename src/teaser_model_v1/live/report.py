@@ -27,7 +27,13 @@ from teaser_model_v1.engine.presentation import PROBABILITY_LABEL
 from teaser_model_v1.live.card import NO_TICKET_MESSAGE, WeeklyCard
 from teaser_model_v1.live.provenance import iso, utc_now
 from teaser_model_v1.live.recheck import DISCARD_REBUILD, NOT_YET_RECHECKED, RecheckResult
-from teaser_model_v1.live.research import PUSH_NOT_MODELED, teased_board_summary
+from teaser_model_v1.live.research import (
+    NOT_COMPARABLE_NOTE,
+    PRIMARY_VALUE_LABEL,
+    PUSH_NOT_MODELED,
+    RESEARCH_SCORE_LABEL,
+    teased_board_summary,
+)
 
 NOT_PLACED = "NOT PLACED — nothing has been wagered"
 
@@ -388,20 +394,31 @@ def render_weekly_report(
             f"{GRAY} **RESEARCH VIEW — NOT AN ELIGIBILITY LIST.** Every side on the board, "
             "teased 6 points through the frozen engine. This table feeds nothing: it does "
             "not affect the top-four cut, ticket construction, EV, exposure or the "
-            "proposed card, and **no row here can become live-eligible, whatever its "
-            "P_est.**"
+            f"proposed card, and **no row here can become live-eligible, whatever its "
+            f"{PRIMARY_VALUE_LABEL} or research score.**"
+        )
+        add("")
+        add(
+            f"The two value columns are **deliberately separate and must not be compared "
+            f"down the page.** A PRIMARY/LIVE leg carries a modelled `{PRIMARY_VALUE_LABEL}`. "
+            f"A SECONDARY/PAPER leg carries an **{RESEARCH_SCORE_LABEL}** instead — the same "
+            "arithmetic, but not a like-for-like win probability."
         )
         add("")
         add(_table(
-            ["Team", "Original → Teased", "Total", "Keys", "P_est", "Geometry", "Track",
-             "Exclusion reason"],
+            ["Team", "Original → Teased", "Total", "Keys", PRIMARY_VALUE_LABEL,
+             RESEARCH_SCORE_LABEL, "Geometry", "Track", "Exclusion reason"],
             [
                 [
                     _bold(row.team, row.is_primary_live),
                     f"{_signed(row.spread)} → {_signed(row.teased_spread)}",
                     row.total,
                     row.key_numbers_crossed,
-                    _pct(row.p_est) + (" ‡" if row.can_push else ""),
+                    # A secondary value is NEVER printed in the P_est column, and a
+                    # primary value is never printed in the research-score column.
+                    _pct(row.p_est) if row.is_primary_live else "—",
+                    "—" if row.is_primary_live
+                    else _pct(row.p_est) + (" ‡" if row.can_push else ""),
                     row.geometry_class,
                     f"{GREEN if row.is_primary_live else GRAY} {row.track}",
                     row.exclusion_reason,
@@ -412,8 +429,7 @@ def render_weekly_report(
         add("")
         add(
             f"‡ **{PUSH_NOT_MODELED}.** The teased line lands on a whole number, so the "
-            "leg can push. v1.0 prices no book-specific secondary push rule, so that "
-            "P_est is a research figure and not a settlement-accurate estimate."
+            f"leg can push. **{NOT_COMPARABLE_NOTE}**"
         )
         add("")
         summary = teased_board_summary(teased_board)
@@ -421,24 +437,25 @@ def render_weekly_report(
         rows = []
         if best_p:
             rows.append([
-                "Highest-P_est **primary**", f"**{best_p.team}** "
+                f"Highest **primary** {PRIMARY_VALUE_LABEL}", f"**{best_p.team}** "
                 f"{_signed(best_p.spread)} → {_signed(best_p.teased_spread)}",
-                _pct(best_p.p_est), f"{GREEN} PRIMARY / LIVE",
+                _pct(best_p.p_est), PRIMARY_VALUE_LABEL, f"{GREEN} PRIMARY / LIVE",
             ])
         if best_s:
             rows.append([
-                "Highest-P_est **secondary**", f"{best_s.team} "
+                f"Highest **secondary** {RESEARCH_SCORE_LABEL.lower()}", f"{best_s.team} "
                 f"{_signed(best_s.spread)} → {_signed(best_s.teased_spread)}"
                 + (" ‡" if best_s.can_push else ""),
-                _pct(best_s.p_est), f"{GRAY} SECONDARY / PAPER",
+                _pct(best_s.p_est), RESEARCH_SCORE_LABEL, f"{GRAY} SECONDARY / PAPER",
             ])
-        add(_table(["", "Leg", "P_est", "Classification"], rows))
+        add(_table(["", "Leg", "Value", "Value is a", "Classification"], rows))
         add("")
         over = summary["secondary_outranking_a_primary"]
         if over:
             add(
-                f"**Secondary legs with a higher P_est than a leg on the live board: "
-                f"{len(over)}** — "
+                f"**{len(over)} secondary legs have a higher {RESEARCH_SCORE_LABEL.lower()} "
+                f"than at least one PRIMARY/LIVE leg — but these values are not directly "
+                f"comparable, because secondary push handling is not modelled.** "
                 + ", ".join(
                     f"{r.team} {_pct(r.p_est)}" + (" ‡" if r.can_push else "") for r in over
                 )
@@ -446,17 +463,20 @@ def render_weekly_report(
             )
             add("")
             add(
-                "> This is an observation about two different populations, **not** a "
-                "finding that the model is mis-specified and **not** a reason to promote "
-                "anything. A higher P_est on a secondary shape does not make it eligible: "
-                "eligibility is geometry plus track, never P_est. Most of these sit on a "
-                "whole number and can push, which v1.0 does not price — so the comparison "
-                "is not even like for like. If it is worth pursuing it belongs in "
-                "`RESEARCH_QUEUE.md` for the 2027 preseason review."
+                "> Two different populations measured two different ways. This is **not** "
+                "a finding that the model is mis-specified and **not** a reason to promote "
+                f"anything: eligibility is geometry plus track, never {PRIMARY_VALUE_LABEL} "
+                "and never a research score. Where the teased line can push, the secondary "
+                "figure is not even measuring the same quantity: sportsbook push settlement "
+                "and discrete push mass are not incorporated. If it is worth pursuing it "
+                "belongs in `RESEARCH_QUEUE.md` for the 2027 preseason review."
             )
             add("")
         else:
-            add("No secondary leg exceeds a leg on the live board this week.")
+            add(
+                f"No secondary leg has a higher {RESEARCH_SCORE_LABEL.lower()} than a "
+                "PRIMARY/LIVE leg this week."
+            )
             add("")
 
     # ---- 6. Audit details (bottom, not top) ------------------------------------------

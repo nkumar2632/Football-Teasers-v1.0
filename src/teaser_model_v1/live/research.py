@@ -34,6 +34,17 @@ from teaser_model_v1.engine.numeric import is_whole_number
 #: The exact label required wherever a teased line can land on the number.
 PUSH_NOT_MODELED = "RESEARCH P_est — PUSH SETTLEMENT NOT MODELED"
 
+#: A secondary leg's value is NOT presented as P_est. Calling it P_est would invite a
+#: reading down the column comparing it with a PRIMARY/LIVE win probability, and those
+#: two numbers are not like for like.
+RESEARCH_SCORE_LABEL = "Unadjusted research score"
+PRIMARY_VALUE_LABEL = "P_est"
+
+NOT_COMPARABLE_NOTE = (
+    "Not a fully modeled win probability when the teased line can push; sportsbook push "
+    "settlement and discrete push mass are not incorporated."
+)
+
 QUALIFIES = "—"
 FAILS_GUARDRAIL = "FAILS TOTAL GUARDRAIL"
 SECONDARY_WHOLE = "SECONDARY GEOMETRY (whole-number line)"

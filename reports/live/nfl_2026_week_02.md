@@ -78,51 +78,53 @@ A proposed card is never a placement. Nothing counts as wagered until it is expl
 
 ## All 6-point teaser legs
 
-⚪ **RESEARCH VIEW — NOT AN ELIGIBILITY LIST.** Every side on the board, teased 6 points through the frozen engine. This table feeds nothing: it does not affect the top-four cut, ticket construction, EV, exposure or the proposed card, and **no row here can become live-eligible, whatever its P_est.**
+⚪ **RESEARCH VIEW — NOT AN ELIGIBILITY LIST.** Every side on the board, teased 6 points through the frozen engine. This table feeds nothing: it does not affect the top-four cut, ticket construction, EV, exposure or the proposed card, and **no row here can become live-eligible, whatever its P_est or research score.**
 
-| Team    | Original → Teased | Total | Keys | P_est   | Geometry  | Track   | Exclusion reason                                                    |
-|---------|-------------------|-------|------|---------|-----------|---------|---------------------------------------------------------------------|
-| **TB**  | -8.5 → -2.5       | 41.5  | 2    | 75.5%   | PRIMARY   | 🟢 LIVE  | —                                                                   |
-| **ATL** | +2.5 → +8.5       | 43.5  | 2    | 74.7%   | PRIMARY   | 🟢 LIVE  | —                                                                   |
-| **CIN** | +2.5 → +8.5       | 45.5  | 2    | 74.0%   | PRIMARY   | 🟢 LIVE  | —                                                                   |
-| **BAL** | -8.5 → -2.5       | 46    | 2    | 73.8%   | PRIMARY   | 🟢 LIVE  | —                                                                   |
-| PHI     | -7 → -1           | 39    | 2    | 76.6% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
-| NYJ     | +3 → +9           | 44.5  | 2    | 74.3% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
-| JAX     | +3 → +9           | 45.5  | 2    | 74.0% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
-| TEN     | +7 → +13          | 39    | 1    | 73.6% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
-| LA      | -7 → -1           | 48    | 2    | 73.2% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line) · FAILS TOTAL GUARDRAIL      |
-| ARI     | +4 → +10          | 41    | 1    | 72.7% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
-| SEA     | -4 → +2           | 41    | 1    | 72.7% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
-| NE      | -5 → +1           | 41.5  | 1    | 72.5% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
-| PIT     | +5 → +11          | 41.5  | 1    | 72.5% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
-| CAR     | -2.5 → +3.5       | 43.5  | 1    | 71.7%   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
-| LAC     | -6.5 → -0.5       | 43.5  | 1    | 71.7%   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
-| LV      | +6.5 → +12.5      | 43.5  | 1    | 71.7%   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
-| GB      | -3 → +3           | 44.5  | 1    | 71.3% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
-| DEN     | -3 → +3           | 45.5  | 1    | 71.0% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
-| HOU     | -2.5 → +3.5       | 45.5  | 1    | 71.0%   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
-| IND     | +6.5 → +12.5      | 46.5  | 1    | 70.6%   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
-| KC      | -6.5 → -0.5       | 46.5  | 1    | 70.6%   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
-| CHI     | -4.5 → +1.5       | 48    | 1    | 70.2%   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape) · FAILS TOTAL GUARDRAIL |
-| MIN     | +4.5 → +10.5      | 48    | 1    | 70.2%   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape) · FAILS TOTAL GUARDRAIL |
-| NYG     | +7 → +13          | 48    | 1    | 70.2% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line) · FAILS TOTAL GUARDRAIL      |
-| DAL     | -4 → +2           | 50.5  | 1    | 69.4% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line) · FAILS TOTAL GUARDRAIL      |
-| WAS     | +4 → +10          | 50.5  | 1    | 69.4% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line) · FAILS TOTAL GUARDRAIL      |
-| CLE     | +8.5 → +14.5      | 41.5  | 0    | 68.5%   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
-| MIA     | +13 → +19         | 45    | 0    | 67.2% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
-| SF      | -13 → -7          | 45    | 0    | 67.2% ‡ | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
-| NO      | +8.5 → +14.5      | 46    | 0    | 66.8%   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
+The two value columns are **deliberately separate and must not be compared down the page.** A PRIMARY/LIVE leg carries a modelled `P_est`. A SECONDARY/PAPER leg carries an **Unadjusted research score** instead — the same arithmetic, but not a like-for-like win probability.
 
-‡ **RESEARCH P_est — PUSH SETTLEMENT NOT MODELED.** The teased line lands on a whole number, so the leg can push. v1.0 prices no book-specific secondary push rule, so that P_est is a research figure and not a settlement-accurate estimate.
+| Team    | Original → Teased | Total | Keys | P_est | Unadjusted research score | Geometry  | Track   | Exclusion reason                                                    |
+|---------|-------------------|-------|------|-------|---------------------------|-----------|---------|---------------------------------------------------------------------|
+| **TB**  | -8.5 → -2.5       | 41.5  | 2    | 75.5% | —                         | PRIMARY   | 🟢 LIVE  | —                                                                   |
+| **ATL** | +2.5 → +8.5       | 43.5  | 2    | 74.7% | —                         | PRIMARY   | 🟢 LIVE  | —                                                                   |
+| **CIN** | +2.5 → +8.5       | 45.5  | 2    | 74.0% | —                         | PRIMARY   | 🟢 LIVE  | —                                                                   |
+| **BAL** | -8.5 → -2.5       | 46    | 2    | 73.8% | —                         | PRIMARY   | 🟢 LIVE  | —                                                                   |
+| PHI     | -7 → -1           | 39    | 2    | —     | 76.6% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
+| NYJ     | +3 → +9           | 44.5  | 2    | —     | 74.3% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
+| JAX     | +3 → +9           | 45.5  | 2    | —     | 74.0% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
+| TEN     | +7 → +13          | 39    | 1    | —     | 73.6% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
+| LA      | -7 → -1           | 48    | 2    | —     | 73.2% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line) · FAILS TOTAL GUARDRAIL      |
+| ARI     | +4 → +10          | 41    | 1    | —     | 72.7% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
+| SEA     | -4 → +2           | 41    | 1    | —     | 72.7% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
+| NE      | -5 → +1           | 41.5  | 1    | —     | 72.5% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
+| PIT     | +5 → +11          | 41.5  | 1    | —     | 72.5% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
+| CAR     | -2.5 → +3.5       | 43.5  | 1    | —     | 71.7%                     | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
+| LAC     | -6.5 → -0.5       | 43.5  | 1    | —     | 71.7%                     | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
+| LV      | +6.5 → +12.5      | 43.5  | 1    | —     | 71.7%                     | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
+| GB      | -3 → +3           | 44.5  | 1    | —     | 71.3% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
+| DEN     | -3 → +3           | 45.5  | 1    | —     | 71.0% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
+| HOU     | -2.5 → +3.5       | 45.5  | 1    | —     | 71.0%                     | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
+| IND     | +6.5 → +12.5      | 46.5  | 1    | —     | 70.6%                     | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
+| KC      | -6.5 → -0.5       | 46.5  | 1    | —     | 70.6%                     | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
+| CHI     | -4.5 → +1.5       | 48    | 1    | —     | 70.2%                     | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape) · FAILS TOTAL GUARDRAIL |
+| MIN     | +4.5 → +10.5      | 48    | 1    | —     | 70.2%                     | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape) · FAILS TOTAL GUARDRAIL |
+| NYG     | +7 → +13          | 48    | 1    | —     | 70.2% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line) · FAILS TOTAL GUARDRAIL      |
+| DAL     | -4 → +2           | 50.5  | 1    | —     | 69.4% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line) · FAILS TOTAL GUARDRAIL      |
+| WAS     | +4 → +10          | 50.5  | 1    | —     | 69.4% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line) · FAILS TOTAL GUARDRAIL      |
+| CLE     | +8.5 → +14.5      | 41.5  | 0    | —     | 68.5%                     | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
+| MIA     | +13 → +19         | 45    | 0    | —     | 67.2% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
+| SF      | -13 → -7          | 45    | 0    | —     | 67.2% ‡                   | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (whole-number line)                              |
+| NO      | +8.5 → +14.5      | 46    | 0    | —     | 66.8%                     | SECONDARY | ⚪ PAPER | SECONDARY GEOMETRY (other half-point shape)                         |
 
-|                             | Leg                | P_est | Classification      |
-|-----------------------------|--------------------|-------|---------------------|
-| Highest-P_est **primary**   | **TB** -8.5 → -2.5 | 75.5% | 🟢 PRIMARY / LIVE    |
-| Highest-P_est **secondary** | PHI -7 → -1 ‡      | 76.6% | ⚪ SECONDARY / PAPER |
+‡ **RESEARCH P_est — PUSH SETTLEMENT NOT MODELED.** The teased line lands on a whole number, so the leg can push. **Not a fully modeled win probability when the teased line can push; sportsbook push settlement and discrete push mass are not incorporated.**
 
-**Secondary legs with a higher P_est than a leg on the live board: 3** — PHI 76.6% ‡, NYJ 74.3% ‡, JAX 74.0% ‡.
+|                                                 | Leg                | Value | Value is a                | Classification      |
+|-------------------------------------------------|--------------------|-------|---------------------------|---------------------|
+| Highest **primary** P_est                       | **TB** -8.5 → -2.5 | 75.5% | P_est                     | 🟢 PRIMARY / LIVE    |
+| Highest **secondary** unadjusted research score | PHI -7 → -1 ‡      | 76.6% | Unadjusted research score | ⚪ SECONDARY / PAPER |
 
-> This is an observation about two different populations, **not** a finding that the model is mis-specified and **not** a reason to promote anything. A higher P_est on a secondary shape does not make it eligible: eligibility is geometry plus track, never P_est. Most of these sit on a whole number and can push, which v1.0 does not price — so the comparison is not even like for like. If it is worth pursuing it belongs in `RESEARCH_QUEUE.md` for the 2027 preseason review.
+**3 secondary legs have a higher unadjusted research score than at least one PRIMARY/LIVE leg — but these values are not directly comparable, because secondary push handling is not modelled.** PHI 76.6% ‡, NYJ 74.3% ‡, JAX 74.0% ‡.
+
+> Two different populations measured two different ways. This is **not** a finding that the model is mis-specified and **not** a reason to promote anything: eligibility is geometry plus track, never P_est and never a research score. Where the teased line can push, the secondary figure is not even measuring the same quantity: sportsbook push settlement and discrete push mass are not incorporated. If it is worth pursuing it belongs in `RESEARCH_QUEUE.md` for the 2027 preseason review.
 
 ---
 
@@ -135,7 +137,7 @@ A proposed card is never a placement. Nothing counts as wagered until it is expl
 | teaser price snapshot | `prc_2026w02_d29ff0515315`  |
 | sportsbook / source   | USER_SPORTSBOOK_SCREENSHOT  |
 | graded at             | `2026-09-19T21:51:41+00:00` |
-| report generated      | `2026-09-19T22:58:36+00:00` |
+| report generated      | `2026-09-19T23:16:15+00:00` |
 | card status           | PROPOSED                    |
 | games scanned         | 15                          |
 

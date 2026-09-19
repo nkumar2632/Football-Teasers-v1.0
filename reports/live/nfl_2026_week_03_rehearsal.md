@@ -96,7 +96,7 @@ Model grade and sportsbook settlement are recorded separately and are never reco
 | teaser price snapshot | `prc_2026w03_1032353df2e1`  |
 | sportsbook / source   | SYNTHETIC_BOOK              |
 | graded at             | `2026-09-19T10:00:00-04:00` |
-| report generated      | `2026-09-19T22:59:22+00:00` |
+| report generated      | `2026-09-19T23:16:07+00:00` |
 | card status           | PROPOSED                    |
 | games scanned         | 7                           |
 

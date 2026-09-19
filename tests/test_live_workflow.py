@@ -771,3 +771,58 @@ def test_teased_board_p_est_is_the_engines_value_shown_to_one_decimal():
         assert row.teased_spread == engine_leg.teased_spread
         assert row.key_numbers_crossed == engine_leg.key_numbers_crossed
         assert _pct(row.p_est) == f"{engine_leg.p_est * 100:.1f}%"
+
+
+def test_secondary_push_legs_are_never_presented_as_comparable_win_probabilities():
+    """A push-capable secondary value must not be able to masquerade as a P_est.
+
+    The failure this guards against is a reader running their eye down one column and
+    concluding a paper leg "beats" the live card. Structurally: nothing secondary may
+    appear in the P_est column, the value must be named a research score, and the
+    non-comparability must be stated in words rather than implied by a symbol.
+    """
+    from teaser_model_v1.live.report import render_weekly_report
+    from teaser_model_v1.live.research import (
+        NOT_COMPARABLE_NOTE, PRIMARY_VALUE_LABEL, PUSH_NOT_MODELED, RESEARCH_SCORE_LABEL,
+    )
+    snapshot = board(moved("NE", spread="3.0"))
+    rows = _teased(snapshot)
+    card = grade_week(snapshot, prices(two=-110, three=180), graded_at=CAPTURED)
+    text = render_weekly_report(card, teased_board=rows, generated_at=CAPTURED)
+    section = _section(text, "## All 6-point teaser legs")
+
+    pushable = [r for r in rows if r.can_push and not r.is_primary_live]
+    assert pushable, "fixture must contain a push-capable secondary leg"
+
+    # Locate the two value columns by name, and prove they are distinct columns.
+    header = next(
+        line for line in section.splitlines()
+        if line.startswith("|") and PRIMARY_VALUE_LABEL in line
+    )
+    columns = _cells(header)
+    p_est_at = columns.index(PRIMARY_VALUE_LABEL)
+    score_at = columns.index(RESEARCH_SCORE_LABEL)
+    assert p_est_at != score_at
+
+    body = _rows(section, "Team")
+    assert len(body) == len(rows)
+    by_team = {r.team: r for r in rows}
+    for cells in body:
+        row = by_team[cells[0]]
+        if row.is_primary_live:
+            assert cells[p_est_at] != "—"
+            assert cells[score_at] == "—", "a live P_est leaked into the research column"
+        else:
+            # The decisive assertion: no secondary value in the P_est column, ever.
+            assert cells[p_est_at] == "—", f"{row.team} secondary value shown as P_est"
+            assert cells[score_at] != "—"
+            if row.can_push:
+                assert "‡" in cells[score_at]
+
+    # The caveat must be spelled out, not left to a symbol.
+    assert RESEARCH_SCORE_LABEL in section
+    assert NOT_COMPARABLE_NOTE in section
+    assert PUSH_NOT_MODELED in section
+    assert "not directly comparable" in section or "must not be compared" in section
+    # And the old, comparability-implying phrasing must not come back.
+    assert "higher P_est than a leg on the live board" not in section
