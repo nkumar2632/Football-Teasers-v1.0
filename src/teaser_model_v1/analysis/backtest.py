@@ -14,6 +14,7 @@ import pandas as pd
 from teaser_model_v1.analysis.calibration import (
     p_est_bucket,
     shape_label,
+    side_class,
     total_bucket,
 )
 from teaser_model_v1.analysis.grading import Outcome, grade_leg
@@ -39,6 +40,7 @@ LEG_COLUMNS = [
     "geometry_class",
     "track",
     "shape",
+    "side_class",
     "secondary_reason",
     "key_numbers_crossed",
     "p_raw",
@@ -98,6 +100,9 @@ def build_leg_records(legs_frame: pd.DataFrame, league: str = "NFL") -> pd.DataF
                 "geometry_class": leg.geometry_class.value,
                 "track": leg.track.value,
                 "shape": shape_label(leg.spread),
+                # Descriptive reporting label only; the frozen model treats all four
+                # primary shapes identically.
+                "side_class": side_class(leg.spread),
                 "secondary_reason": leg.secondary_reason,
                 "key_numbers_crossed": leg.key_numbers_crossed,
                 "p_raw": leg.p_raw,

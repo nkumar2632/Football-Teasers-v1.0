@@ -133,3 +133,128 @@ def test_real_run_is_reproducible(real):
         pd.testing.assert_frame_equal(
             first[key].reset_index(drop=True), second[key].reset_index(drop=True)
         )
+
+
+# ---------------------------------------------------------------------------------------
+# Phase 2B: the 2018-2023 validation block.
+# ---------------------------------------------------------------------------------------
+
+VALIDATION_SEASONS = (2018, 2019, 2020, 2021, 2022, 2023)
+
+phase2b = pytest.mark.skipif(
+    not (PROCESSED / "nfl_legs_2018_2023.csv").exists(),
+    reason="2018-2023 data not present; run scripts/ingest_nfl.py --seasons 2018..2023",
+)
+
+
+@pytest.fixture(scope="module")
+def validation_real():
+    games = pd.read_csv(PROCESSED / "nfl_games_2018_2023.csv")
+    legs = pd.read_csv(PROCESSED / "nfl_legs_2018_2023.csv")
+    return build_leg_records(legs), games
+
+
+@phase2b
+def test_no_primary_push_in_any_validation_season(validation_real):
+    records, _ = validation_real
+    assert_no_primary_push(records.to_dict("records"))
+
+
+@phase2b
+def test_validation_seasons_all_satisfy_the_frozen_filters(validation_real):
+    records, games = validation_real
+    for season in VALIDATION_SEASONS:
+        qualifying = run_season(records, games, season)["qualifying"]
+        assert len(qualifying) > 0
+        assert (qualifying["geometry_class"] == "PRIMARY").all()
+        assert (qualifying["track"] == "LIVE").all()
+        assert (qualifying["game_total"] <= 47).all()
+        assert (qualifying["key_numbers_crossed"] == 2).all()
+        assert (qualifying["bump"].round(10) == 0.07).all()
+        assert set(qualifying["outcome"]) <= {"WIN", "LOSS"}
+        assert (qualifying["cover_margin"] != 0).all()
+        assert set(qualifying["teased_line"]) <= {7.5, 8.5, -1.5, -2.5}
+
+
+@phase2b
+def test_every_validation_season_passed_the_unchanged_data_quality_gate():
+    """The gate is not weakened for Phase 2B; each season must pass on its own."""
+    import json
+
+    for season in VALIDATION_SEASONS:
+        path = ROOT / "reports" / f"DATA_QUALITY_NFL_{season}.json"
+        if not path.exists():
+            pytest.skip(f"per-season audit for {season} not generated yet")
+        payload = json.loads(path.read_text())
+        assert payload["verdict"] == "PASS", (
+            f"{season} failed the data-quality gate: "
+            f"{[c['name'] for c in payload['checks'] if c['status'] == 'FAIL']}"
+        )
+        # The gate itself must be the frozen one.
+        assert payload["thresholds"]["min_half_point_share"] == 0.40
+        assert payload["thresholds"]["max_missing_share"] == 0.01
+
+
+@phase2b
+def test_side_class_partitions_the_primary_shapes(validation_real):
+    records, games = validation_real
+    for season in VALIDATION_SEASONS:
+        qualifying = run_season(records, games, season)["qualifying"]
+        dogs = qualifying[qualifying["shape"].isin(("+1.5", "+2.5"))]
+        favorites = qualifying[qualifying["shape"].isin(("-7.5", "-8.5"))]
+        assert len(dogs) + len(favorites) == len(qualifying)
+        assert (dogs["side_class"] == "DOG").all()
+        assert (favorites["side_class"] == "FAVORITE").all()
+
+
+@phase2b
+def test_no_validation_ticket_contains_two_legs_from_one_game(validation_real):
+    records, games = validation_real
+    for season in VALIDATION_SEASONS:
+        tickets = run_season(records, games, season)["tickets"]
+        if len(tickets):
+            assert not tickets["same_game_legs"].any()
+
+
+@phase2b
+def test_phase2b_outputs_carry_no_price_ev_or_roi_column():
+    forbidden = ("price", "ev", "roi", "profit", "break_even", "odds", "stake", "unit")
+    paths = list(PROCESSED.glob("phase2b_*.csv"))
+    if not paths:
+        pytest.skip("phase2b CSVs not generated yet")
+    for path in paths:
+        for column in [c.lower() for c in pd.read_csv(path, nrows=0).columns]:
+            assert not any(
+                token == column
+                or column.startswith(token + "_")
+                or column.endswith("_" + token)
+                for token in forbidden
+            ), f"{path.name} carries pricing column {column!r}"
+
+
+@phase2b
+def test_phase2b_reports_never_describe_the_line_as_a_close():
+    for name in (
+        "phase2b_nfl_2018_2023_validation.md",
+        "phase2b_dog_favorite_validation.md",
+        "phase2b_total_dependence.md",
+    ):
+        path = ROOT / "reports" / name
+        if not path.exists():
+            pytest.skip(f"{name} not generated yet")
+        text = path.read_text().lower()
+        assert "true_timestamped_close" not in text
+        for line in text.splitlines():
+            if "closing line" in line:
+                assert "not" in line, f"unqualified 'closing line' in {name}: {line}"
+
+
+@phase2b
+def test_validation_run_is_reproducible(validation_real):
+    records, games = validation_real
+    first = run_season(records, games, 2021)
+    second = run_season(records, games, 2021)
+    for key in ("qualifying", "weekly", "top_legs", "tickets"):
+        pd.testing.assert_frame_equal(
+            first[key].reset_index(drop=True), second[key].reset_index(drop=True)
+        )

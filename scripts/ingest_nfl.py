@@ -77,6 +77,11 @@ def main() -> int:
         default=list(SEASONS),
         help="seasons to extract (Phase 1: 2024 2025)",
     )
+    parser.add_argument(
+        "--tag",
+        default=None,
+        help="filename tag for the processed outputs; defaults to the joined season list",
+    )
     args = parser.parse_args()
 
     raw_path = ROOT / "data" / "raw" / RAW_NAME
@@ -89,7 +94,7 @@ def main() -> int:
 
     processed = ROOT / "data" / "processed"
     processed.mkdir(parents=True, exist_ok=True)
-    tag = "_".join(str(s) for s in args.seasons)
+    tag = args.tag or "_".join(str(s) for s in args.seasons)
     games_out = processed / f"nfl_games_{tag}.csv"
     legs_out = processed / f"nfl_legs_{tag}.csv"
     played.to_csv(games_out, index=False)

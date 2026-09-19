@@ -81,12 +81,14 @@ src/teaser_model_v1/
     grading.py             WIN/LOSS grading and the no-PUSH invariant.
     calibration.py         Predeclared buckets, Brier, exact binomial intervals.
     backtest.py            Weekly construction and ticket enumeration.
+    validation.py          Group comparison and monotonicity for predeclared hypotheses.
 
 scripts/
   ingest_nfl.py            Snapshot the source, build processed games and legs frames.
   run_data_quality_audit.py  Run the gate. Exits non-zero on FAIL.
   investigate_line_composition.py  Season-by-season line-shape provenance report.
   run_phase2_calibration.py  Calibration of P_est against outcomes. No prices, no EV.
+  run_phase2b_validation.py  Out-of-sample validation on 2018-2023. No prices, no EV.
 
 tests/                     Written before any historical analysis.
 data/raw/                  Verbatim source snapshots plus provenance manifests.
@@ -113,7 +115,11 @@ python scripts/ingest_nfl.py --from-url                       # snapshot + proce
 python scripts/run_data_quality_audit.py                      # the mandatory gate
 python scripts/investigate_line_composition.py                # line-shape provenance
 python scripts/run_phase2_calibration.py                      # calibration (no pricing)
+python scripts/run_phase2b_validation.py                      # 2018-2023 validation
 ```
+
+The audit accepts `--per-season` to apply the gate to each season independently, and
+`--tag` to select a processed dataset.
 
 `scripts/ingest_nfl.py` also accepts `--from-clone /path/to/nfldata` or
 `--from-file games.csv` if you already have the source locally.
@@ -169,6 +175,11 @@ explicitly as {3, 7}, line-composition shift investigated.
 Phase 2 complete: NFL 2024 and 2025 calibration of `P_est` against actual outcomes, reported
 per season. See `reports/phase2_nfl_2024_calibration.md`,
 `reports/phase2_nfl_2025_calibration.md` and `reports/phase2_nfl_comparison.md`.
+
+Phase 2B complete: out-of-sample validation on NFL 2018-2023, with hypotheses declared
+before those outcomes were examined. All six seasons pass the unchanged data-quality gate.
+See `reports/phase2b_nfl_2018_2023_validation.md`,
+`reports/phase2b_dog_favorite_validation.md` and `reports/phase2b_total_dependence.md`.
 
 **No profitability, EV or ROI figure has been produced.** No historical teaser prices exist
 in the source and none have been invented.

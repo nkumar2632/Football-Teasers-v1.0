@@ -103,6 +103,25 @@ def clopper_pearson_interval(wins: int, n: int, confidence: float = 0.95) -> tup
     return (lower, upper)
 
 
+#: Dog/favorite split. Descriptive grouping only — it creates no new model category.
+DOG_SHAPES = ("+1.5", "+2.5")
+FAVORITE_SHAPES = ("-7.5", "-8.5")
+
+
+def side_class(spread) -> str:
+    """``'DOG'`` when the team is receiving points, ``'FAVORITE'`` when laying them.
+
+    A reporting label, not a model dimension. The frozen model treats all four primary
+    shapes identically.
+    """
+    value = to_decimal(spread)
+    if value > 0:
+        return "DOG"
+    if value < 0:
+        return "FAVORITE"
+    return "PICK"
+
+
 def brier_score(p_est, outcomes) -> float:
     """Mean squared error between predicted probability and the 0/1 outcome.
 
@@ -113,6 +132,68 @@ def brier_score(p_est, outcomes) -> float:
     if p.size == 0:
         return float("nan")
     return float(np.mean((p - y) ** 2))
+
+
+def log_loss(p_est, outcomes) -> float:
+    """Mean negative log likelihood. Lower is better.
+
+    Returns NaN rather than infinity if any forecast sits at exactly 0 or 1, so a
+    degenerate input is visible instead of silently poisoning a comparison.
+    """
+    p = np.asarray(list(p_est), dtype=float)
+    y = np.asarray(list(outcomes), dtype=float)
+    if p.size == 0:
+        return float("nan")
+    if np.any(p <= 0.0) or np.any(p >= 1.0):
+        return float("nan")
+    return float(-np.mean(y * np.log(p) + (1.0 - y) * np.log(1.0 - p)))
+
+
+def constant_forecast(frame: pd.DataFrame) -> float:
+    """The comparator forecast for H3: the mean of the frozen P_est values.
+
+    **Derived from model inputs only.** It is the average of what the frozen model already
+    said about these legs; no realized outcome enters it. Using the realized hit rate as a
+    comparator would be fitting to outcomes and is deliberately not done.
+    """
+    return float(frame["p_est"].mean()) if len(frame) else float("nan")
+
+
+def frozen_versus_constant(frame: pd.DataFrame) -> dict:
+    """Compare the frozen per-leg P_est against a constant mean-P_est forecast.
+
+    Negative deltas mean the frozen model's within-range variation helped.
+    """
+    n = len(frame)
+    if n == 0:
+        return {
+            "n": 0,
+            "constant_p": float("nan"),
+            "brier_frozen": float("nan"),
+            "brier_constant": float("nan"),
+            "delta_brier": float("nan"),
+            "log_loss_frozen": float("nan"),
+            "log_loss_constant": float("nan"),
+            "delta_log_loss": float("nan"),
+            "p_est_variance": float("nan"),
+        }
+    constant = constant_forecast(frame)
+    constant_series = [constant] * n
+    brier_frozen = brier_score(frame["p_est"], frame["won"])
+    brier_constant = brier_score(constant_series, frame["won"])
+    ll_frozen = log_loss(frame["p_est"], frame["won"])
+    ll_constant = log_loss(constant_series, frame["won"])
+    return {
+        "n": n,
+        "constant_p": constant,
+        "brier_frozen": brier_frozen,
+        "brier_constant": brier_constant,
+        "delta_brier": brier_frozen - brier_constant,
+        "log_loss_frozen": ll_frozen,
+        "log_loss_constant": ll_constant,
+        "delta_log_loss": ll_frozen - ll_constant,
+        "p_est_variance": float(np.var(frame["p_est"])),
+    }
 
 
 @dataclass(frozen=True)

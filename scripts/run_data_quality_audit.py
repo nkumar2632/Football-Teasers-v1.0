@@ -29,9 +29,22 @@ from teaser_model_v1.ingest import nflverse  # noqa: E402
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seasons", type=int, nargs="+", default=[2024, 2025])
+    parser.add_argument(
+        "--tag",
+        default=None,
+        help="filename tag of the processed inputs; defaults to the joined season list",
+    )
+    parser.add_argument(
+        "--per-season",
+        action="store_true",
+        help=(
+            "audit each season independently and write one report per season. "
+            "The gate is applied unchanged; a season that fails is reported as failing."
+        ),
+    )
     args = parser.parse_args()
 
-    tag = "_".join(str(s) for s in args.seasons)
+    tag = args.tag or "_".join(str(s) for s in args.seasons)
     games = pd.read_csv(ROOT / "data" / "processed" / f"nfl_games_{tag}.csv")
     legs = pd.read_csv(ROOT / "data" / "processed" / f"nfl_legs_{tag}.csv")
 
@@ -87,8 +100,43 @@ def main() -> int:
         print(f"  [{check.status:4}] {check.name}: {check.detail}")
     print(f"\nwritten: {md_path.relative_to(ROOT)}")
 
-    if report.verdict == FAIL:
-        print("\nSTOP. Data-quality audit FAILED. Do not run the model on this dataset.")
+    failed_seasons = []
+    if args.per_season:
+        print("\n=== per-season audits (gate applied unchanged) ===")
+        for season in sorted(int(s) for s in games["season"].unique()):
+            season_games = games[games["season"] == season]
+            season_legs = legs[legs["season"] == season]
+            season_report = audit_games(
+                season_games,
+                season_legs,
+                dataset=f"NFL {season} — nflverse/nfldata",
+                line_provenance=nflverse.LINE_PROVENANCE,
+                provenance_notes=notes,
+            )
+            season_path = ROOT / "reports" / f"DATA_QUALITY_NFL_{season}.md"
+            write_report(
+                season_report,
+                season_path,
+                season_path.with_suffix(".json"),
+                header_notes=limitations,
+            )
+            verdict = season_report.verdict
+            if verdict == FAIL:
+                failed_seasons.append(season)
+            print(f"  {season}: {verdict}  -> {season_path.relative_to(ROOT)}")
+            for check in season_report.failed_critical:
+                print(f"      FAIL {check.name}: {check.detail}")
+            for check in season_report.warnings:
+                print(f"      WARN {check.name}: {check.detail}")
+
+    if report.verdict == FAIL or failed_seasons:
+        if failed_seasons:
+            print(
+                f"\nSTOP for season(s) {failed_seasons}. The data-quality gate failed. "
+                "Do not run the model on those seasons."
+            )
+        else:
+            print("\nSTOP. Data-quality audit FAILED. Do not run the model on this dataset.")
         return 1
     return 0
 

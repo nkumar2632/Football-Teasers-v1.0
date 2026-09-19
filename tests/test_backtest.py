@@ -81,6 +81,7 @@ def test_leg_records_have_the_required_columns(records):
         "teased_line",
         "game_total",
         "geometry_class",
+        "side_class",
         "p_raw",
         "bump",
         "p_est",
@@ -108,6 +109,15 @@ def test_primary_filter_before_and_after_the_guardrail(records):
     assert len(after) == 4
     dropped = set(before["leg_id"]) - set(after["leg_id"])
     assert dropped == {"2024_01_EEE_FFF-EEE"}
+
+
+def test_side_class_labels_dogs_and_favorites(records):
+    frame, _ = records
+    by_id = frame.set_index("leg_id")
+    assert by_id.loc["2024_01_AAA_BBB-AAA", "side_class"] == "DOG"  # +1.5
+    assert by_id.loc["2024_01_CCC_DDD-CCC", "side_class"] == "FAVORITE"  # -7.5
+    # The label follows the sign of the line, in both leagues and both geometry classes.
+    assert set(frame["side_class"]) <= {"DOG", "FAVORITE", "PICK"}
 
 
 def test_grading_matches_hand_calculation(records):

@@ -65,11 +65,20 @@ distribution. Study whether a lookback window or regime split is warranted. Stat
 These were noticed while building the foundation. They are recorded here rather than acted
 on, per `AGENTS.md`.
 
-### R-08 — leg independence assumption in `P_ticket`
-`P_ticket` is the product of leg `P_est` values, which assumes independence. Legs on the
-same slate share weather, injury news and market-wide mispricing; correlation would bias
-ticket probability. Measure realised joint hit rates against the product for 2- and 3-team
-tickets. Status: `queued`. *This is a measurement task, not a licence to change §6.*
+### R-08 — leg independence assumption in `P_ticket` — EVIDENCE GATHERED
+**Status: `analysed`.** See `reports/phase2b_nfl_2018_2023_validation.md` §5 (Phase 2B).
+
+`P_ticket` is the product of leg `P_est` values, which assumes independence. Across the
+2018-2023 validation block the realized ticket hit rates **exceeded** the product (2-team
+59.8% vs 56.5% predicted; 3-team 56.2% vs 42.7%), while the very legs those tickets were
+built from hit **below** their own mean `P_est` (72.9% against 75.1%). Those two facts
+together indicate positive correlation between legs within a week: outcomes cluster, so
+all-win weeks occur more often than independence implies. The same direction appears in
+2025 and not in 2024.
+
+Ticket rows are correlated and overlapping and no price exists, so this is a diagnostic,
+not a measured edge. **Do not change §6 of the specification.** Quantifying the correlation
+properly — and what it implies for EV once real prices exist — is the research task.
 
 ### R-09 — the top-four rule truncates before EV is known
 §8 ranks legs by `P_est` and keeps four, then computes ticket EV. Since ticket price
@@ -97,6 +106,27 @@ specified so that it cannot exceed 1 by construction is a modelling question. St
 The 2-unit cap limits single-leg exposure but not exposure to a correlated *group* of legs
 (e.g. four legs all needing low-scoring games). Characterise the realised correlation of
 selected portfolios. **Do not replace the greedy rule with an optimizer.** Status: `queued`.
+
+### R-14 — dog/favorite asymmetry within primary geometry — HYPOTHESIS VALIDATED IN DIRECTION ONLY
+**Status: `analysed`.** See `reports/phase2b_dog_favorite_validation.md` (Phase 2B).
+
+Phase 2 generated the exploratory observation that primary underdog legs (+1.5, +2.5) hit
+more often than primary favorite legs (-7.5, -8.5): 81.6% vs 64.3% across 2024-2025. That
+direction was declared in advance and tested against the unseen 2018-2023 block, where it
+**held in direction but not at conventional significance**: dogs 76.5% (101/132) vs
+favorites 68.3% (54/79), +8.2pp, odds ratio 1.51 (95% CI 0.82-2.77), Fisher exact
+two-sided p = 0.20.
+
+The frozen model assigns dogs and favorites near-identical mean `P_est` (0.7511 vs 0.7471
+in the validation block), because all four primary shapes cross both key numbers and
+`P_est` depends only on the total. So any real asymmetry is something v1.0 does not model
+at all.
+
+**This must not split the model by side, reweight anything, or alter the geometry before
+the 2027 preseason review.** Open questions for research: whether the effect survives
+controlling for shape composition and total; whether it reflects a known market bias in
+pricing favorites; and how much of the 2024-2025 magnitude was selection on a noisy
+observation.
 
 ---
 

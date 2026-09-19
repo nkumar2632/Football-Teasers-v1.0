@@ -1,0 +1,181 @@
+{
+  "dataset": "NFL 2022 \u2014 nflverse/nfldata",
+  "seasons": [
+    2022
+  ],
+  "verdict": "PASS",
+  "thresholds": {
+    "min_half_point_share": 0.4,
+    "max_missing_share": 0.01,
+    "max_season_composition_gap": 0.2,
+    "max_abs_spread": 30.0,
+    "min_total": 20.0,
+    "max_total": 80.0
+  },
+  "checks": [
+    {
+      "name": "final_scores_present",
+      "status": "PASS",
+      "critical": true,
+      "detail": "0 of 284 games have no final score.",
+      "data": {
+        "unplayed": 0
+      }
+    },
+    {
+      "name": "missing_spreads",
+      "status": "PASS",
+      "critical": true,
+      "detail": "0 of 284 games missing spread_line (0.000%); gate is <= 1.0%.",
+      "data": {
+        "missing": 0,
+        "share": 0.0
+      }
+    },
+    {
+      "name": "missing_totals",
+      "status": "PASS",
+      "critical": true,
+      "detail": "0 of 284 games missing total_line (0.000%); gate is <= 1.0%.",
+      "data": {
+        "missing": 0,
+        "share": 0.0
+      }
+    },
+    {
+      "name": "duplicate_games",
+      "status": "PASS",
+      "critical": true,
+      "detail": "0 duplicated game_id values; 0 rows duplicating season/week/home/away.",
+      "data": {
+        "duplicate_game_ids": 0,
+        "duplicate_matchup_rows": 0
+      }
+    },
+    {
+      "name": "spreads_on_half_point_grid",
+      "status": "PASS",
+      "critical": true,
+      "detail": "0 spread values are not multiples of 0.5.",
+      "data": {
+        "off_grid": 0
+      }
+    },
+    {
+      "name": "spread_half_point_share",
+      "status": "PASS",
+      "critical": true,
+      "detail": "139 of 284 spreads end in .5 (48.94%); gate is >= 40%. A source that rounded half-points away would sit near 0%.",
+      "data": {
+        "half_point": 139,
+        "share": 0.4894366197183099
+      }
+    },
+    {
+      "name": "spread_half_point_share_every_season",
+      "status": "PASS",
+      "critical": true,
+      "detail": "Lowest single-season half-point share is 48.94% in 2022; gate is >= 40%.",
+      "data": {
+        "season": 2022,
+        "spreads": 284,
+        "half_point": 139,
+        "half_point_share": 0.4894366197183099,
+        "integer": 145
+      }
+    },
+    {
+      "name": "season_composition_consistency",
+      "status": "PASS",
+      "critical": false,
+      "detail": "Half-point composition is consistent across seasons.",
+      "data": {
+        "gaps": []
+      }
+    },
+    {
+      "name": "primary_geometry_present",
+      "status": "PASS",
+      "critical": true,
+      "detail": "All four primary shapes appear in the data.",
+      "data": {
+        "absent": []
+      }
+    },
+    {
+      "name": "primary_geometry_present_every_season",
+      "status": "PASS",
+      "critical": false,
+      "detail": "Every primary shape appears in every season.",
+      "data": {
+        "absent": []
+      }
+    },
+    {
+      "name": "key_numbers_not_collapsed",
+      "status": "PASS",
+      "critical": true,
+      "detail": "Every whole number present in the data still has its adjacent half-point represented.",
+      "data": {
+        "collapsed": []
+      }
+    },
+    {
+      "name": "total_half_point_share",
+      "status": "PASS",
+      "critical": false,
+      "detail": "134 of 284 totals end in .5 (47.18%). Totals do not gate the model the way spreads do, but a near-zero share would still indicate rounding.",
+      "data": {
+        "share": 0.47183098591549294
+      }
+    },
+    {
+      "name": "totals_on_half_point_grid",
+      "status": "PASS",
+      "critical": true,
+      "detail": "0 total values are not multiples of 0.5.",
+      "data": {
+        "off_grid": 0
+      }
+    },
+    {
+      "name": "suspicious_rounding_patterns",
+      "status": "PASS",
+      "critical": false,
+      "detail": "No suspicious rounding patterns detected.",
+      "data": {
+        "patterns": []
+      }
+    },
+    {
+      "name": "impossible_values",
+      "status": "PASS",
+      "critical": true,
+      "detail": "No impossible values found.",
+      "data": {
+        "issues": []
+      }
+    },
+    {
+      "name": "line_provenance_is_honest",
+      "status": "PASS",
+      "critical": false,
+      "detail": "Lines are labelled 'archived_reference_line'. 'true_timestamped_close' is only permitted when the source documents a capture time before kickoff.",
+      "data": {
+        "line_provenance": "archived_reference_line"
+      }
+    }
+  ],
+  "notes": [
+    "Source: nflverse/nfldata games.csv (Lee Sharpe) \u2014 https://github.com/nflverse/nfldata/blob/master/data/games.csv",
+    "Upstream commit: 4a7ebfde2a7c784255f95c457d8c638a7ca188fa",
+    "Retrieved (UTC): 2026-09-19T15:26:08+00:00",
+    "Raw snapshot: `data/raw/nflverse_nfldata_games.csv` (sha256 `35bc182c6e810955404f8e035228fc6535cce3c39c8ecc0dc8af96715b1cd30f`)",
+    "Line provenance label: **archived_reference_line**. nfldata DATASETS.md documents spread_line/total_line only as 'the spread line for the game' / 'the total line for the game'. It makes no claim about capture time, so the fields cannot be called a close of any kind. Commit-history inspection (reports/nfl_line_composition_investigation.md \u00a72.4) confirms this: the row is refreshed every few hours through game week and freezes at whatever the last refresh captured when the final score lands. The lag to kickoff is irregular and undocumented, and feed dropouts leaving both fields briefly blank were observed.",
+    "Documented meaning of `spread_line`: The spread line for the game. A positive number means the home team was favored by that many points, a negative number means the away team was favored by that many points. No capture time is documented.",
+    "Documented meaning of `total_line`: The total line for the game. No capture time is documented.",
+    "Caveat: spread_line/total_line have no documented capture timestamp. They are archived reference lines, NOT a close of any kind.",
+    "Caveat: The source aggregates lines historically; the exact sportsbook is not recorded per game.",
+    "Caveat: No teaser menu prices are present in this source. None have been invented."
+  ]
+}
