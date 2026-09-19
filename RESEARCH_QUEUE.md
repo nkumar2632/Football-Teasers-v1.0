@@ -149,6 +149,40 @@ controlling for shape composition and total; whether it reflects a known market 
 pricing favorites; and how much of the 2024-2025 magnitude was selection on a noisy
 observation.
 
+### R-15 — the exposure cap materially reshapes the historical card
+**Status: `analysed`.** See `reports/phase3_pricing_sensitivity.md` (Phase 3).
+
+At a single price within one ticket size, EV order equals `P_ticket` order, so the greedy
+exhausts the highest-`P_est` legs first. In a four-leg week it takes the three pairings
+among the top three legs and then skips every ticket containing the fourth. The 2-unit cap
+therefore removes the lowest-`P_est` leg of large weeks almost by construction.
+
+In 2018-2023 and pooled, the skipped tickets won more often than the kept ones (0.683
+against 0.567 at a hypothetical 2-team -110, all years), so the flat-eligibility control
+shows a higher hypothetical ROI at most grid points. **2025 reverses this.** The mean
+`P_ticket` of kept and skipped tickets is almost identical (0.5663 against 0.5640), so
+essentially the whole gap is realized-outcome variation on a small sample, not a difference
+in model-rated quality.
+
+**The cap is a risk rule, not an EV rule, and it does its job exactly** — no leg ever
+exceeds 2 units. Nothing here is grounds for changing it, and no wager-sizing change is
+proposed. Whether a different exposure rule would have been preferable is a v2 question for
+the 2027 preseason review.
+
+### R-16 — model-implied fair price versus historical outcome break-even
+**Status: `analysed`.** See `reports/phase3_fair_price_distribution.md` and
+`reports/phase3_historical_price_frontier.md` (Phase 3).
+
+Two distinct objects, never to be conflated. A: the frozen model values a 2-team ticket at
+a median -129 and a 3-team at +135. B: for the frozen selection procedure, realized results
+would have broken even near -119 (2-team) and +133 (3-team) pooled. The 2-team gap says the
+selected subset under-performed its own `P_ticket` in this sample; note that the *full*
+ticket set out-performed it (Phase 2B), so the gap is a property of what the cap selected,
+not of the geometry.
+
+Neither number is a price any sportsbook offered. Both rest on 315 legs across three source
+regimes.
+
 ---
 
 ## Data and measurement infrastructure (not model changes)
@@ -156,11 +190,18 @@ observation.
 These are tooling gaps rather than model questions. They may be *built* without touching
 v1.0, but they are listed here so they are not forgotten.
 
-### D-01 — no historical teaser menu prices
-The nflverse source contains no teaser prices, and none have been invented. Until a real
-historical teaser menu is sourced, historical work is restricted to hit rate, calibration,
-fair break-even pricing, and clearly labelled hypothetical-price sensitivity. Finding a
-documented historical teaser menu is high value. Status: `queued`.
+### D-01 — no historical teaser menu prices — NOW THE BINDING CONSTRAINT
+The nflverse source contains no teaser prices and none have been invented. Phase 3 could
+therefore only run an explicitly hypothetical price grid, and **every conclusion about
+profitability is conditional on a price nobody has observed.**
+
+This is now the single largest gap in the research programme. Across the frozen procedure's
+55 priced scenarios with enough betting weeks for an interval, only 4 week-cluster
+bootstrap intervals exclude zero, and all four sit at 3-team prices at or above +160 —
+materially better than the model's own fair value of about +135. Finding a documented
+historical teaser menu would do more for this project than any modelling work.
+
+For 2026, capture the actual offered teaser price on every placed ticket. Status: `queued`.
 
 ### D-02 — no true timestamped close in the historical source
 `spread_line` / `total_line` in nflverse/nfldata carry no documented capture time and are

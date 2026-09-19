@@ -388,3 +388,138 @@ def test_phase2c_monte_carlo_reproduces_on_the_real_board():
     assert result["2team"]["observed_hit_rate"] == pytest.approx(
         row["observed_hit_rate"], abs=1e-12
     )
+
+
+# ---------------------------------------------------------------------------------------
+# Phase 3: pricing sensitivity outputs.
+# ---------------------------------------------------------------------------------------
+
+phase3 = pytest.mark.skipif(
+    not (PROCESSED / "phase3_price_grid.csv").exists(),
+    reason="Phase 3 not generated; run scripts/run_phase3_pricing.py",
+)
+
+
+@phase3
+def test_phase3_reports_disclaim_their_prices_correctly():
+    """Each report must disclaim the right thing.
+
+    The two grid reports carry hypothetical prices and must say so. The fair-price report
+    carries no hypothetical price at all — it reports model-implied fair value — so it must
+    instead disclaim that its prices were ever offered.
+    """
+    for name in ("phase3_pricing_sensitivity.md", "phase3_historical_price_frontier.md"):
+        lowered = (ROOT / "reports" / name).read_text().lower()
+        assert "hypothetical" in lowered
+
+    fair = (ROOT / "reports" / "phase3_fair_price_distribution.md").read_text().lower()
+    assert "not** a price any sportsbook offered" in fair or (
+        "not a price any sportsbook offered" in fair
+    )
+
+    for name in (
+        "phase3_pricing_sensitivity.md",
+        "phase3_historical_price_frontier.md",
+        "phase3_fair_price_distribution.md",
+    ):
+        path = ROOT / "reports" / name
+        assert path.exists(), f"{name} missing"
+        lowered = path.read_text().lower()
+        # The two price objects must never be presented as the same thing.
+        if "break-even" in lowered:
+            assert "model-implied" in lowered or "historical outcome" in lowered
+        # No unqualified claim of a realized or backtested return.
+        for phrase in ("realized roi", "backtested return", "actual historical price"):
+            for line in lowered.splitlines():
+                if phrase in line:
+                    assert any(
+                        negation in line for negation in ("not ", "never", "unknown")
+                    ), f"unqualified {phrase!r} in {name}: {line}"
+
+
+@phase3
+def test_phase3_grid_prices_are_exactly_the_declared_points():
+    from teaser_model_v1.analysis.pricing_sensitivity import GRID_2TEAM, GRID_3TEAM
+
+    grid = pd.read_csv(PROCESSED / "phase3_price_grid.csv")
+    two = grid[grid["scenario"] == "2-team only"]["american_2team"].dropna().unique()
+    three = grid[grid["scenario"] == "3-team only"]["american_3team"].dropna().unique()
+    assert set(two) == set(float(p) for p in GRID_2TEAM)
+    assert set(three) == set(float(p) for p in GRID_3TEAM)
+    assert set(grid["procedure"]) == {"frozen greedy + cap", "flat eligibility (control)"}
+
+
+@phase3
+def test_phase3_profit_and_loss_reconciles_with_wins_and_losses():
+    grid = pd.read_csv(PROCESSED / "phase3_price_grid.csv")
+    single = grid[
+        (grid["scenario"] == "2-team only") & (grid["tickets_selected"] > 0)
+    ].copy()
+    profit = 100.0 / single["american_2team"].abs()
+    expected = single["wins"] * profit - single["losses"]
+    assert np.allclose(single["hypothetical_profit_loss"], expected, atol=1e-9)
+    assert (single["wins"] + single["losses"] == single["tickets_selected"]).all()
+    assert np.allclose(
+        single["hypothetical_roi"],
+        single["hypothetical_profit_loss"] / single["units_staked"],
+        atol=1e-12,
+    )
+
+
+@phase3
+def test_phase3_exposure_cap_is_never_violated():
+    weekly = pd.read_csv(PROCESSED / "phase3_weekly_cards.csv")
+    frozen = weekly[weekly["procedure"] == "frozen greedy + cap"]
+    assert (frozen["max_leg_exposure"] <= 2).all()
+
+
+@phase3
+def test_phase3_selected_is_always_a_subset_of_positive_ev():
+    grid = pd.read_csv(PROCESSED / "phase3_price_grid.csv")
+    assert (grid["tickets_selected"] <= grid["eligible_positive_ev_tickets"]).all()
+    flat = grid[grid["procedure"] == "flat eligibility (control)"]
+    # The control keeps everything positive EV, by definition.
+    assert (flat["tickets_selected"] == flat["eligible_positive_ev_tickets"]).all()
+
+
+@phase3
+def test_phase3_better_prices_never_select_fewer_tickets():
+    grid = pd.read_csv(PROCESSED / "phase3_price_grid.csv")
+    frozen = grid[
+        (grid["procedure"] == "frozen greedy + cap") & (grid["scenario"] == "3-team only")
+    ]
+    for _, block in frozen.groupby("block"):
+        ordered = block.sort_values("american_3team")
+        assert (ordered["eligible_positive_ev_tickets"].diff().dropna() >= 0).all()
+
+
+@phase3
+def test_phase3_fair_price_csv_is_internally_consistent():
+    fair = pd.read_csv(PROCESSED / "phase3_ticket_fair_prices.csv")
+    assert np.allclose(fair["fair_decimal_odds"], 1.0 + fair["fair_profit"], atol=1e-12)
+    assert np.allclose(
+        fair["break_even_probability"], fair["predicted_p_ticket"], atol=1e-12
+    )
+    assert np.allclose(
+        fair["fair_profit"],
+        (1 - fair["predicted_p_ticket"]) / fair["predicted_p_ticket"],
+        atol=1e-12,
+    )
+
+
+@phase3
+def test_phase3_frontier_curves_are_reproducible():
+    from teaser_model_v1.analysis.pricing_sensitivity import breakeven_frontier
+
+    games = pd.read_csv(PROCESSED / "nfl_games_2024_2025.csv")
+    records = build_leg_records(pd.read_csv(PROCESSED / "nfl_legs_2024_2025.csv"))
+    qualifying = run_season(records, games, 2025)["qualifying"]
+
+    published = pd.read_csv(PROCESSED / "phase3_frontier_curves.csv")
+    subset = published[
+        (published["block"] == "2025") & (published["ticket_size"] == "2-team")
+    ].reset_index(drop=True)
+
+    recomputed = breakeven_frontier(qualifying, 2, block="2025").curve.reset_index(drop=True)
+    assert len(recomputed) == len(subset)
+    assert np.allclose(recomputed["profit_loss"], subset["profit_loss"], atol=1e-9)

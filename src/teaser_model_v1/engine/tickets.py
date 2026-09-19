@@ -198,11 +198,17 @@ class SelectionResult:
         return len(self.selected)
 
 
+def _is_placement_eligible(ticket: "Ticket") -> bool:
+    """The frozen live-eligibility predicate: positive EV at an actual offered price."""
+    return ticket.placement_eligible
+
+
 def select_live_tickets(
     tickets: Iterable[Ticket],
     *,
     max_units_per_leg: int = MAX_UNITS_PER_LEG_PER_WEEK,
     units_per_ticket: int = UNITS_PER_TICKET,
+    eligibility: Callable[["Ticket"], bool] = _is_placement_eligible,
 ) -> SelectionResult:
     """Greedy exposure-capped selection of live tickets.
 
@@ -213,8 +219,15 @@ def select_live_tickets(
 
     This greedy rule is intentional. It is not an approximation of an optimizer and must
     not be replaced by one.
+
+    ``eligibility`` exists so that **research** can drive this exact algorithm over
+    explicitly hypothetical prices — a historical sensitivity study cannot use the live
+    predicate, because a hypothetical price can never confer placement eligibility
+    (AMBIGUITIES.md A-8). The default is the frozen live predicate and is unchanged; a test
+    pins that. Passing anything else marks the run as research-only, and its output must
+    never be described as a live selection or as a realized return.
     """
-    ordered = rank_tickets(t for t in tickets if t.placement_eligible)
+    ordered = rank_tickets(t for t in tickets if eligibility(t))
 
     exposure: dict[str, int] = {}
     selected: list[Ticket] = []

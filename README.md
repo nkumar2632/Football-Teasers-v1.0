@@ -83,6 +83,7 @@ src/teaser_model_v1/
     backtest.py            Weekly construction and ticket enumeration.
     validation.py          Group comparison and monotonicity for predeclared hypotheses.
     dependence.py          Independence audit: Monte Carlo null and permutation tests.
+    pricing_sensitivity.py Fair price, hypothetical grids, break-even frontier.
 
 scripts/
   ingest_nfl.py            Snapshot the source, build processed games and legs frames.
@@ -91,6 +92,7 @@ scripts/
   run_phase2_calibration.py  Calibration of P_est against outcomes. No prices, no EV.
   run_phase2b_validation.py  Out-of-sample validation on 2018-2023. No prices, no EV.
   run_phase2c_independence_audit.py  Audit of the ticket independence assumption.
+  run_phase3_pricing.py    Fair price and HYPOTHETICAL price sensitivity.
 
 tests/                     Written before any historical analysis.
 data/raw/                  Verbatim source snapshots plus provenance manifests.
@@ -119,6 +121,7 @@ python scripts/investigate_line_composition.py                # line-shape prove
 python scripts/run_phase2_calibration.py                      # calibration (no pricing)
 python scripts/run_phase2b_validation.py                      # 2018-2023 validation
 python scripts/run_phase2c_independence_audit.py              # independence audit
+python scripts/run_phase3_pricing.py                          # pricing (hypothetical)
 ```
 
 The audit accepts `--per-season` to apply the gate to each season independently, and
@@ -188,6 +191,12 @@ Phase 2C complete: audit of the independence assumption behind `P_ticket`. Evide
 positive within-week dependence is **weak** — see
 `reports/phase2c_independence_audit.md` for the evidentiary basis. No correction was
 applied; the frozen ticket formula is unchanged.
+
+Phase 3 complete: model-implied fair prices and an explicitly **hypothetical** price
+sensitivity grid. **No actual historical teaser prices exist for this source and none
+were invented, so no realized ROI is claimed anywhere.** See
+`reports/phase3_fair_price_distribution.md`, `reports/phase3_pricing_sensitivity.md`
+and `reports/phase3_historical_price_frontier.md`.
 
 **No profitability, EV or ROI figure has been produced.** No historical teaser prices exist
 in the source and none have been invented.
