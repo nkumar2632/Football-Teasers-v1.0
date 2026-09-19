@@ -2,6 +2,11 @@
 
 A :class:`Leg` is pure data plus the frozen model's verdict on it. It knows nothing about
 where its numbers came from; ingestion lives in :mod:`teaser_model_v1.ingest`.
+
+The leg's classification is held as a single
+:class:`~teaser_model_v1.engine.classification.LegClassification` value carrying **both**
+dimensions — geometry class and operational track. They are never stored as one field and
+never inferred from each other.
 """
 
 from __future__ import annotations
@@ -10,14 +15,9 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Iterable, Sequence
 
-from teaser_model_v1.engine.constants import TEASER_POINTS, Geometry, Track
-from teaser_model_v1.engine.geometry import (
-    classify_geometry,
-    passes_total_guardrail,
-    secondary_label,
-    teased_spread,
-    track_for,
-)
+from teaser_model_v1.engine.classification import LegClassification, classify
+from teaser_model_v1.engine.constants import CFB, NFL, TEASER_POINTS, Geometry, Track
+from teaser_model_v1.engine.geometry import passes_total_guardrail, teased_spread
 from teaser_model_v1.engine.leagues import normalize_league
 from teaser_model_v1.engine.numeric import to_decimal
 from teaser_model_v1.engine.probability import (
@@ -56,23 +56,61 @@ class Leg:
 
     # Derived by build_leg()
     teased_spread: Decimal = Decimal(0)
-    geometry: Geometry = Geometry.SECONDARY
-    secondary_reason: str | None = None
-    geometry_track: Track = Track.PAPER
+    classification: LegClassification = LegClassification(
+        geometry_class=Geometry.SECONDARY, track=Track.PAPER
+    )
     total_ok: bool = False
     key_numbers_crossed: int = 0
     bump: float = 0.0
     p_raw: float = 0.0
     p_est: float = 0.0
 
+    # ---- Dimension 1: geometry class -------------------------------------------------
+
     @property
-    def is_primary(self) -> bool:
-        return self.geometry is Geometry.PRIMARY
+    def geometry_class(self) -> Geometry:
+        """PRIMARY or SECONDARY — the shape of the line, in either league."""
+        return self.classification.geometry_class
+
+    @property
+    def is_primary_geometry(self) -> bool:
+        """True for CFB primary geometry as well as NFL primary geometry."""
+        return self.classification.is_primary
+
+    @property
+    def secondary_reason(self) -> str | None:
+        return self.classification.secondary_reason
+
+    # ---- Dimension 2: operational track ----------------------------------------------
+
+    @property
+    def track(self) -> Track:
+        """LIVE or PAPER — only NFL primary geometry is LIVE."""
+        return self.classification.track
+
+    @property
+    def is_live_track(self) -> bool:
+        return self.classification.is_live_track
+
+    # ---- Combined eligibility --------------------------------------------------------
 
     @property
     def qualifies_primary(self) -> bool:
-        """Primary geometry **and** inside the league total guardrail."""
-        return self.is_primary and self.total_ok
+        """Primary **geometry** and inside the league total guardrail.
+
+        League-independent: a CFB primary leg inside the CFB guardrail qualifies here.
+        This is a research-track question. It is *not* live eligibility.
+        """
+        return self.is_primary_geometry and self.total_ok
+
+    @property
+    def qualifies_live_primary(self) -> bool:
+        """Live eligibility: NFL primary geometry inside the NFL guardrail."""
+        return self.is_live_track and self.total_ok
+
+    def classification_label(self) -> str:
+        """``'PRIMARY/PAPER'`` — both dimensions, always reported together."""
+        return self.classification.label()
 
     def sort_key(self) -> tuple:
         """Deterministic ranking key: P_est descending, then leg_id ascending.
@@ -120,9 +158,7 @@ def build_leg(
         provenance=provenance,
         extra=dict(extra or {}),
         teased_spread=teased_spread(spread_d, teaser_points=teaser_points),
-        geometry=classify_geometry(lg, spread_d),
-        secondary_reason=secondary_label(lg, spread_d),
-        geometry_track=track_for(lg, spread_d),
+        classification=classify(lg, spread_d),
         total_ok=passes_total_guardrail(lg, total_d),
         key_numbers_crossed=crossings,
         bump=bump_for_leg(lg, spread_d, teaser_points=teaser_points),
@@ -131,13 +167,51 @@ def build_leg(
     )
 
 
-def eligible_primary_nfl_legs(legs: Iterable[Leg]) -> list[Leg]:
-    """Filter to legs that qualify for the live primary NFL track.
+def eligible_live_primary_legs(legs: Iterable[Leg]) -> list[Leg]:
+    """Filter to legs eligible for the **live** track: NFL primary geometry, total OK.
 
-    Requires NFL, primary geometry, and the NFL total guardrail. Order is not imposed
-    here; :func:`~teaser_model_v1.engine.tickets.select_top_legs` does the ranking.
+    This is the filter the frozen weekly construction uses. CFB primary legs are
+    deliberately excluded — not because they are not primary geometry, but because they
+    are on the paper track.
     """
-    return [leg for leg in legs if leg.league == "NFL" and leg.qualifies_primary]
+    return [leg for leg in legs if leg.qualifies_live_primary]
+
+
+#: Retained name from Phase 1. Identical behaviour to
+#: :func:`eligible_live_primary_legs`; the newer name states which dimension it filters on.
+eligible_primary_nfl_legs = eligible_live_primary_legs
+
+
+def primary_geometry_legs(legs: Iterable[Leg], league: str | None = None) -> list[Leg]:
+    """Filter to legs with primary **geometry**, in either league, total guardrail applied.
+
+    Research helper for the paper track — it is how CFB primary geometry stays visible and
+    distinguishable from CFB secondary geometry. It confers no live eligibility.
+    """
+    lg = normalize_league(league) if league is not None else None
+    return [
+        leg
+        for leg in legs
+        if leg.qualifies_primary and (lg is None or leg.league == lg)
+    ]
+
+
+def paper_track_legs(legs: Iterable[Leg]) -> list[Leg]:
+    """Every leg on the paper/research track: NFL secondary plus all college football."""
+    return [leg for leg in legs if not leg.is_live_track]
+
+
+def legs_by_classification(legs: Iterable[Leg]) -> dict[tuple[str, str, str], list[Leg]]:
+    """Group legs by ``(league, geometry_class, track)``.
+
+    The grouping key keeps both dimensions explicit, so a research cut can never collapse
+    "CFB primary" into "CFB secondary" or into "NFL primary".
+    """
+    grouped: dict[tuple[str, str, str], list[Leg]] = {}
+    for leg in legs:
+        key = (leg.league, leg.geometry_class.value, leg.track.value)
+        grouped.setdefault(key, []).append(leg)
+    return grouped
 
 
 def legs_by_game(legs: Sequence[Leg]) -> dict[str | None, list[Leg]]:

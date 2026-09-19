@@ -53,14 +53,55 @@ primary NFL geometries.
 Specifically: **do not hard-code any proposed CFB bump correction.** The CFB bump values in
 the spec are the ones in the code, provisional or not.
 
-## Scope reminder
+## Scope reminder — two dimensions, never conflated
+
+Every leg carries **two independent classifications**. Do not merge them, do not infer one
+from the other, and do not add a field that encodes both as a single value.
+
+| Dimension | Values | Determined by |
+|---|---|---|
+| **Geometry class** | `PRIMARY` / `SECONDARY` | the shape of the line, alone |
+| **Operational track** | `LIVE` / `PAPER` | the league, plus the geometry class |
+
+Primary geometry is the **same structural geometry in both leagues**:
+
+```
+dog       +1.5 -> +7.5        favorite   -7.5 -> -1.5
+dog       +2.5 -> +8.5        favorite   -8.5 -> -2.5
+```
+
+| Leg | geometry_class | track |
+|---|---|---|
+| NFL `+2.5 → +8.5` | PRIMARY | LIVE |
+| CFB `+2.5 → +8.5` | PRIMARY | PAPER |
+| NFL `+4.5 → +10.5` | SECONDARY | PAPER |
+| CFB `+4.5 → +10.5` | SECONDARY | PAPER |
 
 - **LIVE:** NFL primary geometry only.
-- **PAPER / RESEARCH ONLY:** NFL secondary geometry, all college football, and the *entire*
-  2026 season.
+- **PAPER / RESEARCH ONLY:** NFL secondary geometry, *all* college football — including
+  **CFB primary geometry** — and the *entire* 2026 season.
+
+All college football is paper-only for the whole 2026 v1.0 season. **CFB primary geometry
+must nevertheless stay distinguishable from CFB secondary geometry**, because research on
+the paper track depends on telling them apart. Classifying CFB primary legs as SECONDARY is
+an implementation error, not a safe conservative choice — it was one, and it was corrected;
+see `CORRECTIONS_LOG.md`.
 
 Nothing in this repository places a bet. `placement_eligible` is a model-designation flag,
 not an instruction.
+
+## Key numbers are frozen at {3, 7}
+
+```
+KEY_NUMBERS = {3, 7}
+```
+
+Both leagues. This is settled, not an open question. `+4.5 → +10.5` crosses 7 but not 3 and
+is therefore a **one**-key-number shape under v1.0.
+
+**Do not add 10 as a v1.0 key number.** Whether college football warrants separate treatment
+of 10 is a research question (`RESEARCH_QUEUE.md` R-03) and must not be implemented before
+the 2027 preseason review.
 
 ## Language discipline
 

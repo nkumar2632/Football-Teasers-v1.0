@@ -4,12 +4,22 @@ Pure functions only. No I/O, no network, no pandas dependency in the core maths.
 Every value here is specified by ``TEASER_MODEL_V1_0.md``.
 """
 
+from teaser_model_v1.engine.classification import (
+    LegClassification,
+    classify,
+    geometry_class_for,
+    secondary_reason_for,
+    track_for,
+)
 from teaser_model_v1.engine.constants import (
     BUMP_BOTH,
     BUMP_NONE,
     BUMP_ONE,
     CFB,
     KEY_NUMBERS,
+    KEY_NUMBERS_V1_0,
+    LIVE_LEAGUES,
+    PRIMARY_SPREADS,
     MAX_UNITS_PER_LEG_PER_WEEK,
     MIN_LEGS_FOR_ANY_TICKET,
     NFL,
@@ -25,14 +35,23 @@ from teaser_model_v1.engine.constants import (
 )
 from teaser_model_v1.engine.geometry import (
     classify_geometry,
-    is_primary,
+    is_live_track,
+    is_primary_geometry,
     passes_total_guardrail,
     secondary_label,
     shape_matches_primary_geometry,
     teased_spread,
 )
 from teaser_model_v1.engine.leagues import normalize_league
-from teaser_model_v1.engine.legs import Leg, build_leg, eligible_primary_nfl_legs
+from teaser_model_v1.engine.legs import (
+    Leg,
+    build_leg,
+    eligible_live_primary_legs,
+    eligible_primary_nfl_legs,
+    legs_by_classification,
+    paper_track_legs,
+    primary_geometry_legs,
+)
 from teaser_model_v1.engine.presentation import (
     PROBABILITY_LABEL,
     format_hypothetical_price_note,
@@ -65,7 +84,11 @@ __all__ = [
     "CFB",
     "Geometry",
     "KEY_NUMBERS",
+    "KEY_NUMBERS_V1_0",
+    "LIVE_LEAGUES",
     "Leg",
+    "LegClassification",
+    "PRIMARY_SPREADS",
     "MAX_UNITS_PER_LEG_PER_WEEK",
     "MIN_LEGS_FOR_ANY_TICKET",
     "NFL",
@@ -81,25 +104,34 @@ __all__ = [
     "UNITS_PER_TICKET",
     "break_even_probability",
     "build_leg",
+    "classify",
     "classify_geometry",
+    "eligible_live_primary_legs",
     "eligible_primary_nfl_legs",
+    "geometry_class_for",
     "ev_per_unit",
     "format_hypothetical_price_note",
     "format_probability_pct",
     "generate_tickets",
-    "is_primary",
+    "is_live_track",
+    "is_primary_geometry",
     "key_number_bump",
     "key_numbers_crossed",
+    "legs_by_classification",
     "normalize_league",
     "p_est",
+    "paper_track_legs",
     "p_raw",
     "passes_total_guardrail",
+    "primary_geometry_legs",
     "profit_from_american_odds",
     "secondary_label",
+    "secondary_reason_for",
     "select_live_tickets",
     "select_top_legs",
     "shape_matches_primary_geometry",
     "sigma",
     "teased_spread",
     "ticket_probability",
+    "track_for",
 ]

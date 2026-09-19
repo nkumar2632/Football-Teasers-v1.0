@@ -46,7 +46,11 @@ LINE_PROVENANCE = ARCHIVED_REFERENCE_LINE
 LINE_PROVENANCE_JUSTIFICATION = (
     "nfldata DATASETS.md documents spread_line/total_line only as 'the spread line for "
     "the game' / 'the total line for the game'. It makes no claim about capture time, so "
-    "the fields cannot be called a close of any kind."
+    "the fields cannot be called a close of any kind. Commit-history inspection "
+    "(reports/nfl_line_composition_investigation.md §2.4) confirms this: the row is "
+    "refreshed every few hours through game week and freezes at whatever the last refresh "
+    "captured when the final score lands. The lag to kickoff is irregular and "
+    "undocumented, and feed dropouts leaving both fields briefly blank were observed."
 )
 
 REQUIRED_COLUMNS = (

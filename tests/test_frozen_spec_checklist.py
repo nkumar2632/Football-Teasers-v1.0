@@ -14,11 +14,13 @@ from conftest import stub_leg, stub_ticket
 
 from teaser_model_v1.engine.geometry import (
     classify_geometry,
-    is_primary,
+    is_live_track,
+    is_primary_geometry,
     passes_total_guardrail,
     teased_spread,
+    track_for,
 )
-from teaser_model_v1.engine.constants import Geometry
+from teaser_model_v1.engine.constants import Geometry, Track
 from teaser_model_v1.engine.legs import build_leg
 from teaser_model_v1.engine.presentation import format_probability_pct
 from teaser_model_v1.engine.pricing import (
@@ -46,22 +48,30 @@ from teaser_model_v1.engine.tickets import (
 
 
 def test_01_nfl_dog_plus_1_5_to_plus_7_5_is_primary():
-    assert is_primary("NFL", 1.5)
+    assert is_primary_geometry("NFL", 1.5)
+    assert classify_geometry("NFL", 1.5) is Geometry.PRIMARY
+    assert track_for("NFL", 1.5) is Track.LIVE
     assert teased_spread(1.5) == pytest.approx(7.5)
 
 
 def test_02_nfl_dog_plus_2_5_to_plus_8_5_is_primary():
-    assert is_primary("NFL", 2.5)
+    assert is_primary_geometry("NFL", 2.5)
+    assert classify_geometry("NFL", 2.5) is Geometry.PRIMARY
+    assert track_for("NFL", 2.5) is Track.LIVE
     assert teased_spread(2.5) == pytest.approx(8.5)
 
 
 def test_03_nfl_favorite_minus_7_5_to_minus_1_5_is_primary():
-    assert is_primary("NFL", -7.5)
+    assert is_primary_geometry("NFL", -7.5)
+    assert classify_geometry("NFL", -7.5) is Geometry.PRIMARY
+    assert track_for("NFL", -7.5) is Track.LIVE
     assert teased_spread(-7.5) == pytest.approx(-1.5)
 
 
 def test_04_nfl_favorite_minus_8_5_to_minus_2_5_is_primary():
-    assert is_primary("NFL", -8.5)
+    assert is_primary_geometry("NFL", -8.5)
+    assert classify_geometry("NFL", -8.5) is Geometry.PRIMARY
+    assert track_for("NFL", -8.5) is Track.LIVE
     assert teased_spread(-8.5) == pytest.approx(-2.5)
 
 
@@ -70,21 +80,25 @@ def test_04_nfl_favorite_minus_8_5_to_minus_2_5_is_primary():
 
 
 def test_05_nfl_plus_2_is_secondary_not_primary():
-    assert not is_primary("NFL", 2)
+    assert not is_primary_geometry("NFL", 2)
+    assert track_for("NFL", 2) is Track.PAPER
     assert classify_geometry("NFL", 2) is Geometry.SECONDARY
     assert build_leg("g1-A", "NFL", "A", 2, 44).secondary_reason == "whole_number_line"
 
 
 def test_06_nfl_minus_8_is_secondary_not_primary():
-    assert not is_primary("NFL", -8)
+    assert not is_primary_geometry("NFL", -8)
+    assert track_for("NFL", -8) is Track.PAPER
     assert classify_geometry("NFL", -8) is Geometry.SECONDARY
     assert build_leg("g1-B", "NFL", "B", -8, 44).secondary_reason == "whole_number_line"
 
 
 @pytest.mark.parametrize("league", ["NFL", "CFB"])
 def test_07_plus_3_is_not_primary(league):
-    assert not is_primary(league, 3)
-    assert not is_primary(league, -3)
+    assert not is_primary_geometry(league, 3)
+    assert not is_primary_geometry(league, -3)
+    assert classify_geometry(league, 3) is Geometry.SECONDARY
+    assert track_for(league, 3) is Track.PAPER
 
 
 # ---------------------------------------------------------------------------- 8-11
@@ -105,9 +119,20 @@ def test_10_cfb_total_52_qualifies_for_its_paper_track():
     assert passes_total_guardrail("CFB", 52)
     leg = build_leg("c1-A", "CFB", "A", 1.5, 52)
     assert leg.total_ok
-    # College football is paper/research only in its entirety.
-    assert leg.geometry is Geometry.SECONDARY
-    assert leg.secondary_reason == "cfb_paper_track_primary_shape"
+
+    # +1.5 -> +7.5 is primary GEOMETRY in college football exactly as it is in the NFL.
+    assert leg.geometry_class is Geometry.PRIMARY
+    assert leg.is_primary_geometry
+    assert leg.secondary_reason is None
+
+    # What makes it paper is its TRACK, not its geometry.
+    assert leg.track is Track.PAPER
+    assert not leg.is_live_track
+    assert leg.classification_label() == "PRIMARY/PAPER"
+
+    # It qualifies on the research track, never for live placement.
+    assert leg.qualifies_primary
+    assert not leg.qualifies_live_primary
 
 
 def test_11_cfb_total_52_5_fails():

@@ -113,7 +113,7 @@ def select_top_legs(legs: Sequence[Leg], top_n: int = TOP_N_LEGS) -> list[Leg]:
     """Rank eligible legs by P_est and retain the top *top_n*.
 
     Input should already be filtered to qualifying legs
-    (:func:`~teaser_model_v1.engine.legs.eligible_primary_nfl_legs`); this function does
+    (:func:`~teaser_model_v1.engine.legs.eligible_live_primary_legs`); this function does
     the ranking and truncation only.
     """
     return sorted(legs, key=lambda leg: leg.sort_key())[:top_n]

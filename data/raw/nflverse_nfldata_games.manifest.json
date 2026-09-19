@@ -10,9 +10,9 @@
     "total_line": "The total line for the game. No capture time is documented."
   },
   "line_provenance": "archived_reference_line",
-  "line_provenance_justification": "nfldata DATASETS.md documents spread_line/total_line only as 'the spread line for the game' / 'the total line for the game'. It makes no claim about capture time, so the fields cannot be called a close of any kind.",
+  "line_provenance_justification": "nfldata DATASETS.md documents spread_line/total_line only as 'the spread line for the game' / 'the total line for the game'. It makes no claim about capture time, so the fields cannot be called a close of any kind. Commit-history inspection (reports/nfl_line_composition_investigation.md \u00a72.4) confirms this: the row is refreshed every few hours through game week and freezes at whatever the last refresh captured when the final score lands. The lag to kickoff is irregular and undocumented, and feed dropouts leaving both fields briefly blank were observed.",
   "local_path": "data/raw/nflverse_nfldata_games.csv",
-  "retrieved_at_utc": "2026-09-19T14:17:56+00:00",
+  "retrieved_at_utc": "2026-09-19T14:41:50+00:00",
   "rows": 7548,
   "sha256": "35bc182c6e810955404f8e035228fc6535cce3c39c8ecc0dc8af96715b1cd30f",
   "source_commit": "4a7ebfde2a7c784255f95c457d8c638a7ca188fa",

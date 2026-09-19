@@ -15,10 +15,36 @@ disagree, the code is wrong.
 
 One model architecture with league-specific parameters.
 
+### 1.1 Two independent classification dimensions
+
+Every leg is classified along **two dimensions that must never be conflated**:
+
+| Dimension | Values | Determined by |
+|---|---|---|
+| **Geometry class** | `PRIMARY` / `SECONDARY` | the shape of the line, alone |
+| **Operational track** | `LIVE` / `PAPER` | the league, plus the geometry class |
+
+**Primary geometry is the same structural geometry in both leagues** (§3). What differs
+between leagues is the track, not the geometry.
+
+| Leg | geometry_class | track |
+|---|---|---|
+| NFL `+2.5 → +8.5` | PRIMARY | LIVE |
+| CFB `+2.5 → +8.5` | PRIMARY | PAPER |
+| NFL `+4.5 → +10.5` | SECONDARY | PAPER |
+| CFB `+4.5 → +10.5` | SECONDARY | PAPER |
+
+### 1.2 Track contents
+
 | Track | Contents |
 |---|---|
 | **LIVE** | NFL primary geometry only |
-| **PAPER / RESEARCH ONLY** | NFL secondary geometry; all college football; the entire 2026 season |
+| **PAPER / RESEARCH ONLY** | NFL secondary geometry; all college football — *including CFB primary geometry*; the entire 2026 season |
+
+All college football remains paper-only for the entire 2026 v1.0 season. **CFB primary
+geometry must nevertheless remain distinguishable from CFB secondary geometry** for
+research purposes. Collapsing the two is an implementation error, not a conservative
+choice.
 
 No assumed weekly betting volume. Volume is measured prospectively, not assumed.
 
@@ -26,7 +52,10 @@ No assumed weekly betting volume. Volume is measured prospectively, not assumed.
 
 **6 points only.**
 
-## 3. Primary NFL geometry — half-point lines only
+## 3. Primary geometry — half-point lines only
+
+The primary geometry below is a structural property of the line. It is the same in the NFL
+and in college football. Only the NFL's primary geometry is on the LIVE track (§1).
 
 Eligible underdogs:
 
@@ -60,12 +89,45 @@ sigma  = 0.30 * game_total
 P_raw  = standard_normal_CDF(6 / sigma)
 ```
 
-Provisional key-number bump:
+### 5.1 Key numbers — frozen for v1.0
+
+```
+KEY_NUMBERS = {3, 7}
+```
+
+Exactly `{3, 7}`, in **both** leagues. This is fixed for v1.0.
+
+A key number is **crossed** when the 6-point teaser turns a margin of that size from a loss
+or push into a win. Formally: a bet on a team at line `L` wins when `margin + L > 0`, so
+teasing `L` to `L + 6` newly covers exactly the signed margins in the half-open interval
+`(-L - 6, -L]`. A key number `k` is crossed when `k` or `-k` lies in that interval.
+
+Worked examples:
+
+| Leg | Newly covered margins | Key numbers crossed | Count |
+|---|---|---|---|
+| `+2.5 → +8.5` | −8 … −3 | 3 and 7 | **both** |
+| `−8.5 → −2.5` | 3 … 8 | 3 and 7 | **both** |
+| `+1.5 → +7.5` | −7 … −2 | 3 and 7 | **both** |
+| `−7.5 → −1.5` | 2 … 7 | 3 and 7 | **both** |
+| `+4.5 → +10.5` | −10 … −5 | 7 only | **one** |
+
+All four primary geometries cross both key numbers. `+4.5 → +10.5` is a **one**-key-number
+shape under frozen v1.0: it crosses 7, it does not cross 3, and the 10 it passes through
+earns nothing.
+
+**10 is NOT a v1.0 key number**, in either league. Whether college football warrants
+separate treatment of 10 is a research question only — see `RESEARCH_QUEUE.md` R-03 — and
+must not be implemented before the 2027 preseason review.
+
+### 5.2 Provisional key-number bump
 
 | League | Crosses both key numbers | Crosses one |
 |---|---|---|
 | NFL | +0.07 | +0.04 |
 | CFB | +0.04 | +0.02 |
+
+Provisional does not mean editable. **Do not hard-code any proposed CFB bump correction.**
 
 ```
 P_est = P_raw + bump
@@ -109,7 +171,9 @@ Hypothetical prices must always be labeled as such.
 
 ## 8. Weekly construction
 
-1. Identify eligible primary NFL legs.
+1. Identify eligible primary NFL legs — i.e. legs whose geometry class is PRIMARY *and*
+   whose track is LIVE, inside the NFL total guardrail. CFB primary legs are primary
+   geometry but are on the paper track and never enter this pool.
 2. Rank them by `P_est`.
 3. Retain the **top four** eligible primary legs.
 4. If fewer than two qualify, **no primary ticket can be constructed.**
@@ -210,11 +274,13 @@ These are the literal values in `src/teaser_model_v1/engine/constants.py`. They 
 ```
 TEASER_POINTS                 = 6
 SIGMA_TOTAL_COEFFICIENT       = 0.30
-PRIMARY_NFL_SPREADS           = {+1.5, +2.5, -7.5, -8.5}
+PRIMARY_SPREADS               = {+1.5, +2.5, -7.5, -8.5}   # same set in BOTH leagues
+LIVE_LEAGUES                  = {NFL}                      # only the track is NFL-only
 TOTAL_GUARDRAIL[NFL]          = 47
 TOTAL_GUARDRAIL[CFB]          = 52
-KEY_NUMBERS[NFL]              = (3, 7)     # see AMBIGUITIES.md A-1
-KEY_NUMBERS[CFB]              = (3, 7)     # see AMBIGUITIES.md A-1
+KEY_NUMBERS_V1_0              = {3, 7}     # frozen; 10 is NOT a v1.0 key number
+KEY_NUMBERS[NFL]              = (3, 7)
+KEY_NUMBERS[CFB]              = (3, 7)
 BUMP[NFL]                     = both: 0.07, one: 0.04, none: 0.00
 BUMP[CFB]                     = both: 0.04, one: 0.02, none: 0.00
 TOP_N_LEGS                    = 4
@@ -225,4 +291,8 @@ UNITS_PER_TICKET              = 1
 ```
 
 Points of written-specification ambiguity, and the exact reading used, are recorded in
-[AMBIGUITIES.md](AMBIGUITIES.md). None of them alters the four primary NFL geometries.
+[AMBIGUITIES.md](AMBIGUITIES.md). None of them alters the four primary geometries.
+
+Implementation clarifications made after the specification was frozen — the key-number set
+(§5.1) and the two-dimensional classification (§1.1) — are recorded in
+[CORRECTIONS_LOG.md](CORRECTIONS_LOG.md).

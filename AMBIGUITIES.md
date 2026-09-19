@@ -4,48 +4,57 @@ The specification is frozen, but a written specification is not executable: a fe
 had to be pinned down before code could run. This file records every one of them, the
 reading used, and why that reading was chosen.
 
-**Rule:** where a choice existed, the reading that leaves the four primary NFL geometries
-and their probabilities unchanged was taken. None of the entries below alters the live
-model's behaviour on NFL primary legs.
+**Rule:** where a choice existed, the reading that leaves the four primary geometries and
+their probabilities unchanged was taken. None of the entries below alters the live model's
+behaviour on NFL primary legs.
+
+Entries marked **CLOSED** were settled in Phase 1.5 and are no longer open questions.
 
 Do not resolve a new ambiguity silently. Add it here, and if the resolution could plausibly
 change results, add it to `RESEARCH_QUEUE.md` as well.
 
 ---
 
-## A-1. The specification does not enumerate the key numbers
+## A-1. The key numbers — RESOLVED, no longer an ambiguity
 
-The bump table gives sizes for "crosses both key numbers" and "crosses one" but never says
-what the key numbers are.
+**Status: CLOSED (Phase 1.5).** The key numbers are fixed for frozen v1.0 at exactly
+`{3, 7}`, in both leagues. This is recorded in `TEASER_MODEL_V1_0.md` §5.1 and in
+`KEY_NUMBERS_V1_0`. It is an implementation clarification of the frozen specification, not
+a parameter change.
 
-**Reading used:** the key numbers are **3 and 7**, for both NFL and CFB.
+`+4.5 → +10.5` crosses 7 but not 3 and is a **one**-key-number shape under v1.0. **10 is
+not a v1.0 key number**; whether CFB warrants separate treatment of 10 is research only
+(`RESEARCH_QUEUE.md` R-03) and must not be implemented.
 
-**Why:** the specification's own geometry makes this near-tautological. All four primary
-shapes (+1.5, +2.5, -7.5, -8.5) cross exactly 3 and 7 under a 6-point teaser, and
-"crosses both" is written as an achievable state for them. No other pair of numbers makes
-the primary geometry the thing the bump rewards.
+*Historical note:* Phase 1 implemented `{3, 7}` as a reading of an under-specified point,
+because the bump table gave sizes for "crosses both" and "crosses one" without enumerating
+the numbers. Phase 1.5 confirmed that reading as the frozen value. No behaviour changed.
 
-**Risk if wrong:** every primary leg currently receives the "both" bump, so an error here
-would shift all primary P_est values by the same constant rather than reordering them.
-Leg ranking within the primary set would be unaffected; ticket EV levels would not be.
+## A-2. Geometry class versus operational track — CORRECTED
 
-Empirical key-number mass is in `RESEARCH_QUEUE.md` and must not be used to change this.
+**Status: CLOSED (Phase 1.5). The Phase 1 reading was wrong and has been corrected.**
 
-## A-2. Whether "primary geometry" exists for college football
+Phase 1 read "§3 Primary *NFL* geometry" plus "§1 all college football is paper" as meaning
+CFB legs were never primary, and classified every CFB leg as SECONDARY. That conflated the
+two dimensions.
 
-§3 is headed "Primary NFL geometry". §1 puts *all* college football on the paper/research
-track. The specification never says whether a CFB leg at +1.5 is "primary".
+**Correct reading:** geometry class and operational track are independent.
 
-**Reading used:** `classify_geometry()` returns PRIMARY only for NFL. Every CFB leg is
-SECONDARY, labelled `cfb_paper_track_primary_shape` or `cfb_paper_track_other_shape` so the
-shape information is preserved rather than discarded. A separate, league-independent
-predicate `shape_matches_primary_geometry()` answers the pure shape question.
+* **Geometry class** is a property of the line's shape alone, and the primary geometry
+  `{+1.5, +2.5, -7.5, -8.5}` is the same structure in both leagues.
+* **Operational track** is what restricts live play to the NFL.
 
-**Why:** "LIVE: NFL primary geometry only" is unambiguous. Calling a CFB leg primary would
-create a category that could be mistaken for live-eligible. The shape is still recorded, so
-nothing is lost for research.
+So CFB `+2.5 → +8.5` is `PRIMARY` geometry on the `PAPER` track, and stays distinguishable
+from CFB `+4.5 → +10.5`, which is `SECONDARY` geometry on the `PAPER` track.
 
-**Effect on the live model:** none.
+**Effect on the live model:** none. `eligible_live_primary_legs()` still admits exactly NFL
+primary geometry inside the NFL guardrail, and no CFB leg can reach a constructed ticket.
+The correction restores research visibility that Phase 1 destroyed.
+
+Implementation: `Geometry` and `Track` are distinct plain enums with no shared members, and
+a leg carries a single `LegClassification` holding both. `Geometry.PRIMARY == Track.LIVE`
+is False and neither compares equal to a bare string, so the dimensions cannot be conflated
+by a stray comparison. Logged in `CORRECTIONS_LOG.md`.
 
 ## A-3. What "crosses a key number" means precisely
 

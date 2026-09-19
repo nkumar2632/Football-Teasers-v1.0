@@ -6,7 +6,11 @@ from decimal import Decimal
 
 import pytest
 
-from teaser_model_v1.engine.geometry import is_primary, passes_total_guardrail, teased_spread
+from teaser_model_v1.engine.geometry import (
+    is_primary_geometry,
+    passes_total_guardrail,
+    teased_spread,
+)
 from teaser_model_v1.engine.numeric import (
     is_half_point,
     is_whole_number,
@@ -17,7 +21,8 @@ from teaser_model_v1.engine.numeric import (
 
 @pytest.mark.parametrize("value", [1.5, "1.5", Decimal("1.5")])
 def test_primary_membership_is_type_agnostic(value):
-    assert is_primary("NFL", value)
+    assert is_primary_geometry("NFL", value)
+    assert is_primary_geometry("CFB", value)
 
 
 def test_float_spreads_do_not_drift():

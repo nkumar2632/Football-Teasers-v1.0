@@ -311,10 +311,11 @@ def audit_games(
             "Half-point composition is consistent across seasons."
             if not composition_gaps
             else " ".join(composition_gaps)
-            + " This is consistent with a change in the upstream line source or book "
-            "between seasons. It does not round half-points away (the fidelity gates "
-            "still pass), but it means leg counts are not directly comparable across "
-            "seasons and must be reported per season.",
+            + " This indicates a change in the upstream line feed between seasons. It does "
+            "NOT round half-points away (the fidelity gates still pass), but leg counts are "
+            "not comparable across seasons and must be reported per season, never pooled "
+            "silently. For NFL 2024 vs 2025 this was investigated in full: see "
+            "reports/nfl_line_composition_investigation.md.",
             critical=False,
             data={"gaps": composition_gaps},
         )

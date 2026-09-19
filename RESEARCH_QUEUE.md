@@ -25,10 +25,13 @@ lopsided a game is. Study whether residual dispersion is a function of `|spread|
 total. Status: `queued`.
 
 ### R-03 — empirical key-number mass
-The bump is explicitly provisional and its key numbers are not enumerated in the spec
-(see `AMBIGUITIES.md` A-1). Measure the empirical probability mass at margins of 3 and 7
-(and at 4, 6, 10) directly, per league and per era. **Do not feed the result back into
-v1.0.** Status: `queued`.
+The bump is explicitly provisional. Measure the empirical probability mass at margins of 3
+and 7 — and at 4, 6 and 10 — directly, per league and per era.
+
+The frozen v1.0 key-number set is exactly `{3, 7}` in both leagues
+(`TEASER_MODEL_V1_0.md` §5.1). **Whatever this research finds, 10 must not be added to
+`KEY_NUMBERS`, and no measured mass may be fed back into the v1.0 bump values**, before the
+2027 preseason review. Status: `queued`.
 
 ### R-04 — empirical margin-minus-spread distribution
 The model assumes a normal distribution for `margin - spread`. Measure the actual shape:
@@ -39,6 +42,10 @@ represent. Status: `queued`.
 Everything from sigma coefficient to key-number mass likely differs. The CFB bump values
 are provisional. **No proposed CFB bump correction is hard-coded anywhere in this
 repository, and none may be.** Status: `queued`.
+
+Separately: whether college football warrants treating **10** as a key number is an open
+research question. **10 is NOT a v1.0 key number and must not be added to `KEY_NUMBERS`.**
+The frozen v1.0 set is exactly `{3, 7}` in both leagues (`TEASER_MODEL_V1_0.md` §5.1).
 
 ### R-06 — secondary geometry
 Whole-number lines (+2, -8) and the wider half-point shapes are paper-only in v1.0. Measure
@@ -106,18 +113,31 @@ documented historical teaser menu is high value. Status: `queued`.
 
 ### D-02 — no true timestamped close in the historical source
 `spread_line` / `total_line` in nflverse/nfldata carry no documented capture time and are
-labelled `archived_reference_line`. CLV and line-movement measurement (spec §11) are simply
-not computable from this source. For 2026, capture our own timestamped lines at placement
-and near kickoff. Status: `queued`.
+labelled `archived_reference_line`. Phase 1.5 commit-history work strengthened this: the
+stored value is whatever a periodic scrape caught last before the final score landed, at an
+irregular lag, with observed feed dropouts. CLV and line-movement measurement (spec §11) are
+simply not computable from this source. For 2026, capture our own timestamped lines at
+placement and near kickoff. Status: `queued`.
 
-### D-03 — cross-season composition shift in the historical source
-The 2024 and 2025 seasons in nflverse/nfldata differ markedly in line composition: the
-half-point share of spreads is 52.3% in 2024 versus 75.1% in 2025, and *every* 2025 total
-ends in .5 versus 58.2% in 2024. Half-point fidelity is preserved in both seasons (the audit
-passes), but this is consistent with a change of upstream line source or book between
-seasons. Leg counts and eligibility rates must be reported per season, never pooled without
-comment, and the cause should be investigated before any multi-season claim is made.
-Status: `queued`.
+### D-03 — cross-season source-regime shift in the historical NFL source — INVESTIGATED
+**Status: `analysed`.** See `reports/nfl_line_composition_investigation.md` (Phase 1.5).
+
+Established: the 2025 season runs on a different upstream line feed from 2024 and every
+season back to 1999. 2025 carries zero whole-number totals (all prior seasons carry 105-168)
+and retains integer spreads only at 3, 6, 7, 10 and 14 — integers at 1, 2, 8 and 9 vanish
+entirely. The change is in the incoming feed, not a transformation of stored values, and the
+collection mechanism is unchanged. 2026 continues on the 2025 regime.
+
+Half-point fidelity is intact in both seasons, so neither fails the data-quality gate.
+
+Consequence that must be honoured in all later work: primary-geometry legs are far more
+frequent in 2025 than 2024 for feed reasons rather than market reasons (+1.5 legs 13 -> 35,
++8.5 legs 1 -> 9). **Report per season. Never pool silently.** Treat 2026 as continuous with
+2025, not with 2024.
+
+Remaining open: the identity of the upstream provider in either era, and whether the 2025
+feed is a single sportsbook. Not documented anywhere in the source. No cause beyond "the
+feed changed" is asserted.
 
 ### D-04 — sportsbook identity is not recorded per game
 The historical source does not say which book each archived line came from. Any claim about

@@ -19,10 +19,32 @@ measured. Every backtest in this repository is a research instrument, never a fi
 
 ## Scope
 
+Every leg carries **two independent classifications**, which must never be conflated:
+
+| Dimension | Values | Determined by |
+|---|---|---|
+| **Geometry class** | `PRIMARY` / `SECONDARY` | the shape of the line, alone |
+| **Operational track** | `LIVE` / `PAPER` | the league, plus the geometry class |
+
+Primary geometry is the same structure in both leagues. The league restricts the *track*:
+
+| Leg | geometry_class | track |
+|---|---|---|
+| NFL `+2.5 → +8.5` | PRIMARY | LIVE |
+| CFB `+2.5 → +8.5` | PRIMARY | PAPER |
+| NFL `+4.5 → +10.5` | SECONDARY | PAPER |
+| CFB `+4.5 → +10.5` | SECONDARY | PAPER |
+
 | Track | Contents |
 |---|---|
 | **LIVE** | NFL primary geometry only |
-| **PAPER / RESEARCH ONLY** | NFL secondary geometry; all college football; the entire 2026 season |
+| **PAPER / RESEARCH ONLY** | NFL secondary geometry; all college football — *including CFB primary geometry*; the entire 2026 season |
+
+All college football is paper-only for the whole 2026 season, and CFB primary geometry stays
+distinguishable from CFB secondary geometry so research can tell them apart.
+
+Key numbers are frozen at **{3, 7}** in both leagues. `+4.5 → +10.5` crosses 7 but not 3 and
+is a one-key-number shape. 10 is not a v1.0 key number.
 
 Weekly betting volume is **measured**, not assumed. Some weeks will produce zero qualifying
 legs, and zero is recorded like any other number.
@@ -41,7 +63,8 @@ src/teaser_model_v1/
     constants.py           Every frozen number, in one place.
     numeric.py             Exact-decimal helpers protecting half-point fidelity.
     leagues.py             League normalization.
-    geometry.py            Primary/secondary classification, teased spread, guardrail.
+    classification.py      The two dimensions: geometry class and operational track.
+    geometry.py            Teased spread, total guardrail, geometry lookups.
     probability.py         sigma, P_raw, key-number crossings, bump, P_est.
     pricing.py             break-even, EV per unit, price conversions.
     legs.py                The Leg value object.
@@ -58,6 +81,7 @@ src/teaser_model_v1/
 scripts/
   ingest_nfl.py            Snapshot the source, build processed games and legs frames.
   run_data_quality_audit.py  Run the gate. Exits non-zero on FAIL.
+  investigate_line_composition.py  Season-by-season line-shape provenance report.
 
 tests/                     Written before any historical analysis.
 data/raw/                  Verbatim source snapshots plus provenance manifests.
@@ -82,6 +106,7 @@ Python 3.10+. pandas, numpy, scipy, pytest.
 python -m pytest                                              # unit tests
 python scripts/ingest_nfl.py --from-url                       # snapshot + process NFL data
 python scripts/run_data_quality_audit.py                      # the mandatory gate
+python scripts/investigate_line_composition.py                # line-shape provenance
 ```
 
 `scripts/ingest_nfl.py` also accepts `--from-clone /path/to/nfldata` or
@@ -116,7 +141,23 @@ prices that are labelled hypothetical every time they appear.
   that fails the re-check is *discarded*.
 - Hypothetical prices are labelled hypothetical, everywhere, always.
 
+## Known source-regime caveat
+
+The 2025 NFL season in the historical source runs on a **different upstream line feed** from
+2024 and every season back to 1999: zero whole-number totals, and integer spreads only at 3,
+6, 7, 10 and 14. Half-point fidelity is intact in both seasons and neither fails the gate,
+but primary-geometry legs are substantially more frequent in 2025 for feed reasons rather
+than market reasons.
+
+**Report per season. Never pool silently.** 2026 is continuous with the 2025 regime, not
+with 2024. Full evidence: `reports/nfl_line_composition_investigation.md`.
+
 ## Status
 
 Phase 1 complete: repository structure, frozen engine, unit tests, NFL 2024–2025 ingestion,
-data-quality audit. **No model-performance results have been produced.**
+data-quality audit.
+
+Phase 1.5 complete: CFB primary/secondary interpretation corrected, key numbers stated
+explicitly as {3, 7}, line-composition shift investigated.
+
+**No model-performance results have been produced.**

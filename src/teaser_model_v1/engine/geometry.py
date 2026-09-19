@@ -1,6 +1,10 @@
-"""Geometry classification, teased-spread arithmetic and the total guardrail.
+"""Teased-spread arithmetic, the total guardrail, and geometry lookups.
 
 Frozen. See ``TEASER_MODEL_V1_0.md`` §§2-4.
+
+The two-dimensional classification itself lives in
+:mod:`teaser_model_v1.engine.classification`; this module re-exports the geometry-side
+helpers and owns the arithmetic.
 
 All spreads are expressed **from the perspective of the team being bet**: a positive
 spread means that team is receiving points (underdog), a negative spread means it is
@@ -11,17 +15,37 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from teaser_model_v1.engine.classification import (
+    LegClassification,
+    classify,
+    geometry_class_for,
+    secondary_reason_for,
+    track_for,
+)
 from teaser_model_v1.engine.constants import (
-    CFB,
-    NFL,
-    PRIMARY_NFL_SPREADS,
+    PRIMARY_SPREADS,
     TEASER_POINTS,
     TOTAL_GUARDRAIL,
     Geometry,
     Track,
 )
 from teaser_model_v1.engine.leagues import normalize_league
-from teaser_model_v1.engine.numeric import is_whole_number, to_decimal
+from teaser_model_v1.engine.numeric import to_decimal
+
+__all__ = [
+    "LegClassification",
+    "classify",
+    "classify_geometry",
+    "geometry_class_for",
+    "is_live_track",
+    "is_primary_geometry",
+    "passes_total_guardrail",
+    "secondary_label",
+    "secondary_reason_for",
+    "shape_matches_primary_geometry",
+    "teased_spread",
+    "track_for",
+]
 
 
 def teased_spread(spread, teaser_points: int = TEASER_POINTS) -> Decimal:
@@ -39,66 +63,43 @@ def teased_spread(spread, teaser_points: int = TEASER_POINTS) -> Decimal:
 def shape_matches_primary_geometry(spread) -> bool:
     """True when *spread* is one of the four primary shapes: +1.5, +2.5, -7.5, -8.5.
 
-    This is a league-independent test of the *shape* only. Whether a leg is actually
-    classified PRIMARY also depends on the league — see :func:`classify_geometry` and
-    AMBIGUITIES.md A-2.
+    Identical to ``geometry_class_for(spread) is Geometry.PRIMARY``; kept as a predicate
+    because "does this shape match" reads better at some call sites.
     """
-    return to_decimal(spread) in PRIMARY_NFL_SPREADS
+    return to_decimal(spread) in PRIMARY_SPREADS
 
 
 def classify_geometry(league: str, spread) -> Geometry:
-    """Classify a leg's geometry as PRIMARY or SECONDARY.
+    """Return the **geometry class** of a leg.
 
-    PRIMARY requires **both**:
+    The *league argument is accepted but does not affect the answer*: primary geometry is
+    the same structure in both leagues. ``classify_geometry("CFB", 2.5)`` is
+    ``Geometry.PRIMARY``, because CFB is restricted by its *track*, not by its geometry.
 
-    * the league is NFL — the specification defines primary geometry as *NFL* primary
-      geometry, and college football is paper/research only in its entirety; and
-    * the pre-teaser spread is exactly +1.5, +2.5, -7.5 or -8.5.
-
-    Everything else is SECONDARY. In particular whole-number lines such as ``+2`` or
-    ``-8`` are secondary, and ``+3`` is secondary.
+    Use :func:`track_for` to ask whether a leg may be played live.
     """
-    lg = normalize_league(league)
-    if lg == NFL and shape_matches_primary_geometry(spread):
-        return Geometry.PRIMARY
-    return Geometry.SECONDARY
+    normalize_league(league)  # validate, so an unknown league still raises
+    return geometry_class_for(spread)
 
 
-def is_primary(league: str, spread) -> bool:
-    """Convenience predicate for :func:`classify_geometry`."""
+def is_primary_geometry(league: str, spread) -> bool:
+    """True when the leg's shape is primary geometry, in either league."""
     return classify_geometry(league, spread) is Geometry.PRIMARY
 
 
+def is_live_track(league: str, spread) -> bool:
+    """True only for NFL primary geometry."""
+    return track_for(league, spread) is Track.LIVE
+
+
 def secondary_label(league: str, spread) -> str | None:
-    """Return a short reason string describing *why* a leg is secondary.
+    """Reason string for a secondary *shape*; ``None`` for primary geometry.
 
-    Returns ``None`` for primary legs. The label is descriptive only: it records a fact
-    about the leg, it does not create any new eligibility.
+    League-independent: a CFB primary leg returns ``None`` like an NFL one, because it is
+    genuinely primary geometry. Its paper status is carried by the track.
     """
-    lg = normalize_league(league)
-    d = to_decimal(spread)
-
-    if classify_geometry(lg, d) is Geometry.PRIMARY:
-        return None
-
-    if lg == CFB:
-        if shape_matches_primary_geometry(d):
-            return "cfb_paper_track_primary_shape"
-        return "cfb_paper_track_other_shape"
-
-    if is_whole_number(d):
-        return "whole_number_line"
-    return "other_half_point_shape"
-
-
-def track_for(league: str, spread) -> Track:
-    """LIVE for NFL primary geometry, PAPER for everything else.
-
-    Note that the *entire* 2026 season is paper/research per specification §1; this
-    function reports the geometry-and-league track only. Season-level gating is applied
-    by the caller and is recorded on :class:`~teaser_model_v1.engine.legs.Leg`.
-    """
-    return Track.LIVE if is_primary(league, spread) else Track.PAPER
+    normalize_league(league)
+    return secondary_reason_for(spread)
 
 
 def passes_total_guardrail(league: str, total) -> bool:

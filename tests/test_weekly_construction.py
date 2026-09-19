@@ -5,7 +5,12 @@ from __future__ import annotations
 import pytest
 from conftest import make_leg
 
-from teaser_model_v1.engine.legs import eligible_primary_nfl_legs
+from teaser_model_v1.engine.legs import (
+    eligible_live_primary_legs,
+    legs_by_classification,
+    paper_track_legs,
+    primary_geometry_legs,
+)
 from teaser_model_v1.engine.tickets import generate_tickets, select_top_legs
 from teaser_model_v1.engine.weekly import construct_week
 
@@ -28,19 +33,82 @@ def test_eligibility_requires_primary_geometry_and_guardrail():
             (-8.5, 44),  # eligible
         ]
     )
-    eligible = eligible_primary_nfl_legs(legs)
+    eligible = eligible_live_primary_legs(legs)
     assert {leg.leg_id for leg in eligible} == {"L0", "L1", "L5"}
 
 
 def test_cfb_legs_never_enter_the_live_primary_pool():
+    """CFB primary geometry is primary geometry — and still never live."""
     legs = board([(1.5, 40), (-7.5, 44)], league="CFB")
-    assert eligible_primary_nfl_legs(legs) == []
+
+    assert eligible_live_primary_legs(legs) == []
+    # ...but they are emphatically not invisible: they qualify on the research track.
+    assert len(primary_geometry_legs(legs)) == 2
+    assert len(paper_track_legs(legs)) == 2
+
+
+def test_cfb_primary_and_secondary_are_separable_on_the_paper_track():
+    legs = board([(2.5, 50), (4.5, 50), (-8.5, 48), (3.0, 50)], league="CFB")
+
+    primary = primary_geometry_legs(legs)
+    assert {leg.leg_id for leg in primary} == {"L0", "L2"}
+
+    grouped = legs_by_classification(legs)
+    assert set(grouped) == {
+        ("CFB", "PRIMARY", "PAPER"),
+        ("CFB", "SECONDARY", "PAPER"),
+    }
+    assert len(grouped[("CFB", "PRIMARY", "PAPER")]) == 2
+    assert len(grouped[("CFB", "SECONDARY", "PAPER")]) == 2
+
+
+def test_a_mixed_league_board_separates_into_all_four_classes():
+    legs = (
+        board([(2.5, 44), (4.5, 44)], league="NFL")
+        + board([(2.5, 50), (4.5, 50)], league="CFB")
+    )
+    # leg_ids collide across the two boards; rebuild with unique ids.
+    from conftest import make_leg
+
+    legs = [
+        make_leg("nfl-primary", 2.5, 44, league="NFL"),
+        make_leg("nfl-secondary", 4.5, 44, league="NFL"),
+        make_leg("cfb-primary", 2.5, 50, league="CFB"),
+        make_leg("cfb-secondary", 4.5, 50, league="CFB"),
+    ]
+
+    labels = {leg.leg_id: leg.classification_label() for leg in legs}
+    assert labels == {
+        "nfl-primary": "PRIMARY/LIVE",
+        "nfl-secondary": "SECONDARY/PAPER",
+        "cfb-primary": "PRIMARY/PAPER",
+        "cfb-secondary": "SECONDARY/PAPER",
+    }
+
+    # Only the NFL primary leg reaches the live pool.
+    assert [leg.leg_id for leg in eligible_live_primary_legs(legs)] == ["nfl-primary"]
+    # Both primary legs are visible to research.
+    assert {leg.leg_id for leg in primary_geometry_legs(legs)} == {
+        "nfl-primary",
+        "cfb-primary",
+    }
+    # Research can also ask for one league's primary geometry specifically.
+    assert [leg.leg_id for leg in primary_geometry_legs(legs, "CFB")] == ["cfb-primary"]
+
+
+def test_cfb_primary_legs_cannot_reach_a_constructed_ticket():
+    from teaser_model_v1.engine.weekly import construct_week
+
+    legs = board([(2.5, 50), (-8.5, 48), (1.5, 45)], league="CFB")
+    result = construct_week(legs, {2: 0.9, 3: 2.0})
+    assert result.n_qualifying_primary_legs == 0
+    assert result.tickets == ()
 
 
 def test_top_four_selection_is_by_p_est_descending():
     # Lower total -> smaller sigma -> higher P_raw. All five cross both key numbers.
     legs = board([(1.5, 46), (1.5, 44), (1.5, 42), (1.5, 40), (1.5, 38)])
-    top = select_top_legs(eligible_primary_nfl_legs(legs))
+    top = select_top_legs(eligible_live_primary_legs(legs))
 
     assert len(top) == 4
     assert [leg.leg_id for leg in top] == ["L4", "L3", "L2", "L1"]

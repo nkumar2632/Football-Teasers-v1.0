@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Sequence
 
-from teaser_model_v1.engine.legs import Leg, eligible_primary_nfl_legs
+from teaser_model_v1.engine.legs import Leg, eligible_live_primary_legs
 from teaser_model_v1.engine.tickets import (
     ProfitSource,
     SelectionResult,
@@ -73,7 +73,9 @@ def construct_week(
 ) -> WeeklyResult:
     """Run the frozen weekly construction over one week's board.
 
-    1. Identify eligible primary NFL legs.
+    1. Identify eligible primary NFL legs — primary geometry on the LIVE track.
+       CFB primary geometry is primary geometry, but it is on the paper track and is
+       deliberately excluded here.
     2. Rank them by P_est.
     3. Retain the top four.
     4. If fewer than two qualify, no primary ticket can be constructed.
@@ -81,7 +83,7 @@ def construct_week(
     6. Negative-EV tickets are kept for display/logging.
     7. Greedy exposure-capped selection over positive-EV tickets at a real price.
     """
-    qualifying = eligible_primary_nfl_legs(legs)
+    qualifying = eligible_live_primary_legs(legs)
     top = select_top_legs(qualifying)
 
     notes: list[str] = []

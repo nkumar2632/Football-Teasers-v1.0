@@ -89,7 +89,7 @@
       "name": "season_composition_consistency",
       "status": "WARN",
       "critical": false,
-      "detail": "spread half-point share varies by 22.8% across seasons ({2024: 0.523, 2025: 0.751}). total half-point share varies by 41.8% across seasons ({2024: 0.582, 2025: 1.0}). This is consistent with a change in the upstream line source or book between seasons. It does not round half-points away (the fidelity gates still pass), but it means leg counts are not directly comparable across seasons and must be reported per season.",
+      "detail": "spread half-point share varies by 22.8% across seasons ({2024: 0.523, 2025: 0.751}). total half-point share varies by 41.8% across seasons ({2024: 0.582, 2025: 1.0}). This indicates a change in the upstream line feed between seasons. It does NOT round half-points away (the fidelity gates still pass), but leg counts are not comparable across seasons and must be reported per season, never pooled silently. For NFL 2024 vs 2025 this was investigated in full: see reports/nfl_line_composition_investigation.md.",
       "data": {
         "gaps": [
           "spread half-point share varies by 22.8% across seasons ({2024: 0.523, 2025: 0.751}).",
@@ -173,9 +173,9 @@
   "notes": [
     "Source: nflverse/nfldata games.csv (Lee Sharpe) \u2014 https://github.com/nflverse/nfldata/blob/master/data/games.csv",
     "Upstream commit: 4a7ebfde2a7c784255f95c457d8c638a7ca188fa",
-    "Retrieved (UTC): 2026-09-19T14:17:56+00:00",
+    "Retrieved (UTC): 2026-09-19T14:41:50+00:00",
     "Raw snapshot: `data/raw/nflverse_nfldata_games.csv` (sha256 `35bc182c6e810955404f8e035228fc6535cce3c39c8ecc0dc8af96715b1cd30f`)",
-    "Line provenance label: **archived_reference_line**. nfldata DATASETS.md documents spread_line/total_line only as 'the spread line for the game' / 'the total line for the game'. It makes no claim about capture time, so the fields cannot be called a close of any kind.",
+    "Line provenance label: **archived_reference_line**. nfldata DATASETS.md documents spread_line/total_line only as 'the spread line for the game' / 'the total line for the game'. It makes no claim about capture time, so the fields cannot be called a close of any kind. Commit-history inspection (reports/nfl_line_composition_investigation.md \u00a72.4) confirms this: the row is refreshed every few hours through game week and freezes at whatever the last refresh captured when the final score lands. The lag to kickoff is irregular and undocumented, and feed dropouts leaving both fields briefly blank were observed.",
     "Documented meaning of `spread_line`: The spread line for the game. A positive number means the home team was favored by that many points, a negative number means the away team was favored by that many points. No capture time is documented.",
     "Documented meaning of `total_line`: The total line for the game. No capture time is documented.",
     "Caveat: spread_line/total_line have no documented capture timestamp. They are archived reference lines, NOT a close of any kind.",
