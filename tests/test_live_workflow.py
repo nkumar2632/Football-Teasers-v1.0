@@ -660,3 +660,114 @@ def test_proposed_card_visibly_marks_every_ticket_positive_ev(card):
         assert row[6] == "1u"
     # And the claim must be true of the stored card, not merely printed.
     assert all("POSITIVE" in t.status.upper() for t in card.selected_tickets)
+
+
+# ---- Research view: all 6-point teaser legs -----------------------------------------------
+#
+# The whole point of this table is that it is inert. These tests pin that: it shows every
+# side, it never promotes one, and it cannot move the card.
+
+
+def _teased(snapshot=None):
+    from teaser_model_v1.live.research import teased_board_rows
+    return teased_board_rows(snapshot if snapshot is not None else board(FIVE_PRIMARY))
+
+
+def test_teased_board_covers_every_side_on_the_board():
+    snapshot = board(FIVE_PRIMARY)
+    rows = _teased(snapshot)
+    assert len(rows) == len(snapshot.quotes)
+    assert {r.team for r in rows} == {q.team for q in snapshot.quotes}
+
+
+def test_teased_board_never_promotes_a_secondary_leg():
+    """The headline invariant: P_est cannot buy eligibility."""
+    for row in _teased():
+        if row.geometry_class == "SECONDARY":
+            assert row.track == "PAPER", f"{row.team} promoted to {row.track}"
+            assert not row.on_live_board
+            assert not row.is_primary_live
+    # And it holds no matter how high P_est runs.
+    hottest = max(_teased(), key=lambda r: r.p_est)
+    if hottest.geometry_class == "SECONDARY":
+        assert hottest.track == "PAPER"
+
+
+def test_teased_board_keeps_whole_number_geometry_secondary():
+    from teaser_model_v1.engine.numeric import is_whole_number
+    seen = False
+    for row in _teased(board(moved("NE", spread="3.0"))):
+        if is_whole_number(row.spread):
+            assert row.geometry_class == "SECONDARY"
+            assert row.track == "PAPER"
+            seen = True
+    assert seen, "fixture must contain a whole-number line"
+
+
+def test_teased_board_shows_guardrail_failures_rather_than_hiding_them():
+    from teaser_model_v1.live.research import FAILS_GUARDRAIL
+    rows = _teased(board(moved("NE", total="55.0")))
+    over = [r for r in rows if float(r.total) > 47]
+    assert over, "fixture must contain a game over the total guardrail"
+    for row in over:
+        assert FAILS_GUARDRAIL in row.exclusion_reason
+        assert not row.on_live_board
+
+
+def test_teased_board_flags_push_capable_legs_with_the_exact_label():
+    from teaser_model_v1.engine.numeric import is_whole_number
+    from teaser_model_v1.live.report import render_weekly_report
+    from teaser_model_v1.live.research import PUSH_NOT_MODELED
+    snapshot = board(moved("NE", spread="3.0"))
+    rows = _teased(snapshot)
+    pushable = [r for r in rows if r.can_push]
+    assert pushable, "fixture must contain a teased line that can push"
+    for row in rows:
+        assert row.can_push == is_whole_number(row.teased_spread)
+    card = grade_week(snapshot, prices(two=-110, three=180), graded_at=CAPTURED)
+    text = render_weekly_report(card, teased_board=rows, generated_at=CAPTURED)
+    assert PUSH_NOT_MODELED in text
+    assert PUSH_NOT_MODELED == "RESEARCH P_est — PUSH SETTLEMENT NOT MODELED"
+
+
+def test_teased_board_sort_is_primary_live_first_then_p_est():
+    rows = _teased()
+    flags = [r.is_primary_live for r in rows]
+    assert flags == sorted(flags, reverse=True), "PRIMARY/LIVE must lead"
+    for group in (True, False):
+        block = [r.p_est for r in rows if r.is_primary_live is group]
+        assert block == sorted(block, reverse=True)
+
+
+def test_teased_board_cannot_change_the_card():
+    """Rendering the research view must leave every card-derived section identical."""
+    from teaser_model_v1.live.report import render_weekly_report
+    snapshot = board(FIVE_PRIMARY)
+    card = grade_week(snapshot, prices(two=-110, three=180), graded_at=CAPTURED)
+    without = render_weekly_report(card, generated_at=CAPTURED)
+    with_view = render_weekly_report(card, teased_board=_teased(snapshot),
+                                     generated_at=CAPTURED)
+    # Everything above the research section is byte-identical.
+    head = "## All 6-point teaser legs"
+    assert head not in without
+    assert with_view[: with_view.index("---\n\n" + head)] == without[: without.index("---\n\n## Audit")]
+    # And the card itself is untouched by the view.
+    assert card.selected_ticket_keys == grade_week(
+        snapshot, prices(two=-110, three=180), graded_at=CAPTURED).selected_ticket_keys
+    assert card.exposure == grade_week(
+        snapshot, prices(two=-110, three=180), graded_at=CAPTURED).exposure
+
+
+def test_teased_board_p_est_is_the_engines_value_shown_to_one_decimal():
+    from teaser_model_v1.engine.legs import build_leg
+    from teaser_model_v1.live.report import _pct
+    snapshot = board(FIVE_PRIMARY)
+    by_team = {q.team: q for q in snapshot.quotes}
+    for row in _teased(snapshot):
+        quote = by_team[row.team]
+        engine_leg = build_leg(leg_id="x", league="NFL", team=row.team,
+                               spread=quote.spread, game_total=quote.total)
+        assert row.p_est == engine_leg.p_est          # full precision preserved
+        assert row.teased_spread == engine_leg.teased_spread
+        assert row.key_numbers_crossed == engine_leg.key_numbers_crossed
+        assert _pct(row.p_est) == f"{engine_leg.p_est * 100:.1f}%"

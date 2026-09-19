@@ -38,7 +38,8 @@ from teaser_model_v1.live.placement import (  # noqa: E402
 from teaser_model_v1.live.pricing import read_price_csv, write_price_template  # noqa: E402
 from teaser_model_v1.live.provenance import require_aware, utc_now  # noqa: E402
 from teaser_model_v1.live.recheck import recheck_card  # noqa: E402
-from teaser_model_v1.live.report import write_weekly_report  # noqa: E402
+from teaser_model_v1.live.report import write_weekly_report
+from teaser_model_v1.live.research import teased_board_rows  # noqa: E402
 from teaser_model_v1.live.rehydrate import (  # noqa: E402
     card_from_dict,
     market_from_dict,
@@ -137,7 +138,10 @@ def cmd_grade_week(args) -> int:
 
     workspace.cards.put(card.card_id, card.to_dict(), kind="weekly_card")
     report = write_weekly_report(
-        card, workspace.reports_dir / f"nfl_{card.season}_week_{card.week:02d}.md"
+        card, workspace.reports_dir / f"nfl_{card.season}_week_{card.week:02d}.md",
+        # Research view only. Built from the same snapshot the card was graded against;
+        # it is rendered, never consulted by grading or selection.
+        teased_board=teased_board_rows(market),
     )
     print(f"report: {report}")
 
@@ -179,11 +183,14 @@ def cmd_show_card(args) -> int:
         row for row in workspace.all_settlements(card.season)
         if row.get("placement_id") in placement_ids
     ]
+    market_payload = workspace.snapshots.get(card.market_snapshot_id)
+    teased = teased_board_rows(market_from_dict(market_payload)) if market_payload else None
     print(write_weekly_report(
         card,
         workspace.reports_dir / f"nfl_{card.season}_week_{card.week:02d}.md",
         placements=placements,
         settlements=settlements,
+        teased_board=teased,
     ))
     return 0
 

@@ -27,6 +27,7 @@ from teaser_model_v1.engine.presentation import PROBABILITY_LABEL
 from teaser_model_v1.live.card import NO_TICKET_MESSAGE, WeeklyCard
 from teaser_model_v1.live.provenance import iso, utc_now
 from teaser_model_v1.live.recheck import DISCARD_REBUILD, NOT_YET_RECHECKED, RecheckResult
+from teaser_model_v1.live.research import PUSH_NOT_MODELED, teased_board_summary
 
 NOT_PLACED = "NOT PLACED — nothing has been wagered"
 
@@ -145,6 +146,7 @@ def render_weekly_report(
     recheck: RecheckResult | None = None,
     placements: list | None = None,
     settlements: list | None = None,
+    teased_board: list | None = None,
     generated_at: datetime | None = None,
 ) -> str:
     generated_at = generated_at or utc_now()
@@ -375,6 +377,87 @@ def render_weekly_report(
             "reconciled by a generic rule."
         )
         add("")
+
+    # ---- Research view: every side teased. Display only; feeds nothing. ---------------
+    if teased_board:
+        add("---")
+        add("")
+        add("## All 6-point teaser legs")
+        add("")
+        add(
+            f"{GRAY} **RESEARCH VIEW — NOT AN ELIGIBILITY LIST.** Every side on the board, "
+            "teased 6 points through the frozen engine. This table feeds nothing: it does "
+            "not affect the top-four cut, ticket construction, EV, exposure or the "
+            "proposed card, and **no row here can become live-eligible, whatever its "
+            "P_est.**"
+        )
+        add("")
+        add(_table(
+            ["Team", "Original → Teased", "Total", "Keys", "P_est", "Geometry", "Track",
+             "Exclusion reason"],
+            [
+                [
+                    _bold(row.team, row.is_primary_live),
+                    f"{_signed(row.spread)} → {_signed(row.teased_spread)}",
+                    row.total,
+                    row.key_numbers_crossed,
+                    _pct(row.p_est) + (" ‡" if row.can_push else ""),
+                    row.geometry_class,
+                    f"{GREEN if row.is_primary_live else GRAY} {row.track}",
+                    row.exclusion_reason,
+                ]
+                for row in teased_board
+            ],
+        ))
+        add("")
+        add(
+            f"‡ **{PUSH_NOT_MODELED}.** The teased line lands on a whole number, so the "
+            "leg can push. v1.0 prices no book-specific secondary push rule, so that "
+            "P_est is a research figure and not a settlement-accurate estimate."
+        )
+        add("")
+        summary = teased_board_summary(teased_board)
+        best_p, best_s = summary["best_primary"], summary["best_secondary"]
+        rows = []
+        if best_p:
+            rows.append([
+                "Highest-P_est **primary**", f"**{best_p.team}** "
+                f"{_signed(best_p.spread)} → {_signed(best_p.teased_spread)}",
+                _pct(best_p.p_est), f"{GREEN} PRIMARY / LIVE",
+            ])
+        if best_s:
+            rows.append([
+                "Highest-P_est **secondary**", f"{best_s.team} "
+                f"{_signed(best_s.spread)} → {_signed(best_s.teased_spread)}"
+                + (" ‡" if best_s.can_push else ""),
+                _pct(best_s.p_est), f"{GRAY} SECONDARY / PAPER",
+            ])
+        add(_table(["", "Leg", "P_est", "Classification"], rows))
+        add("")
+        over = summary["secondary_outranking_a_primary"]
+        if over:
+            add(
+                f"**Secondary legs with a higher P_est than a leg on the live board: "
+                f"{len(over)}** — "
+                + ", ".join(
+                    f"{r.team} {_pct(r.p_est)}" + (" ‡" if r.can_push else "") for r in over
+                )
+                + "."
+            )
+            add("")
+            add(
+                "> This is an observation about two different populations, **not** a "
+                "finding that the model is mis-specified and **not** a reason to promote "
+                "anything. A higher P_est on a secondary shape does not make it eligible: "
+                "eligibility is geometry plus track, never P_est. Most of these sit on a "
+                "whole number and can push, which v1.0 does not price — so the comparison "
+                "is not even like for like. If it is worth pursuing it belongs in "
+                "`RESEARCH_QUEUE.md` for the 2027 preseason review."
+            )
+            add("")
+        else:
+            add("No secondary leg exceeds a leg on the live board this week.")
+            add("")
 
     # ---- 6. Audit details (bottom, not top) ------------------------------------------
     add("---")
