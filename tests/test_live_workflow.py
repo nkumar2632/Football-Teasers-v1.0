@@ -1,0 +1,453 @@
+"""Phase 4: re-check, placement ledger, settlement, report, season ledger, isolation."""
+
+from __future__ import annotations
+
+import json
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+
+import pytest
+
+from tests.test_live_card import FIVE_PRIMARY, board, prices  # noqa: F401
+from teaser_model_v1.live.card import grade_week
+from teaser_model_v1.live.ledger import (
+    FINAL_OBSERVED,
+    GRADING_LINE,
+    TRUE_TIMESTAMPED_CLOSE,
+    LineObservation,
+    SeasonLedger,
+    WeekLedgerEntry,
+    line_movement,
+)
+from teaser_model_v1.live.placement import (
+    EXTERNAL_NON_MODEL,
+    MODEL_DESIGNATED,
+    ExposureCapViolation,
+    PlacementLedger,
+    PlacementRefused,
+)
+from teaser_model_v1.live.recheck import (
+    DISCARD_REBUILD,
+    NOT_YET_RECHECKED,
+    StaleSnapshotError,
+    VALIDATED,
+    recheck_card,
+)
+from teaser_model_v1.live.report import NOT_PLACED, render_weekly_report
+from teaser_model_v1.live.settlement import (
+    BOOK_CANCELLED,
+    BOOK_VOID,
+    BOOK_WIN,
+    PrimaryPushInSettlement,
+    grade_leg_settlement,
+    settle_ticket,
+)
+
+EASTERN = timezone(timedelta(hours=-4))
+CAPTURED = datetime(2026, 9, 19, 10, 0, tzinfo=EASTERN)
+LATER = datetime(2026, 9, 20, 12, 40, tzinfo=EASTERN)
+PLACED_AT = datetime(2026, 9, 20, 12, 45, tzinfo=EASTERN)
+SETTLED_AT = datetime(2026, 9, 20, 16, 30, tzinfo=EASTERN)
+
+
+def moved(team, spread=None, total=None):
+    rows = []
+    for away, home, side, old_spread, old_total in FIVE_PRIMARY:
+        if side == team:
+            rows.append((away, home, side, spread or old_spread, total or old_total))
+        else:
+            rows.append((away, home, side, old_spread, old_total))
+    return rows
+
+
+@pytest.fixture
+def card():
+    return grade_week(board(FIVE_PRIMARY), prices(two=-110, three=180), graded_at=CAPTURED)
+
+
+# ---- 18-22. re-check --------------------------------------------------------------------
+
+
+def test_recheck_requires_a_new_market_snapshot(card):
+    with pytest.raises(StaleSnapshotError, match="NEW market snapshot"):
+        recheck_card(card, board(FIVE_PRIMARY), prices(two=-110, three=180))
+
+
+def test_recheck_invalidates_a_line_that_moved_off_primary_geometry(card):
+    new_market = board(moved("NE", spread="3.0"), captured_at=LATER)
+    result = recheck_card(card, new_market, prices(two=-110, three=180, captured_at=LATER),
+                          rechecked_at=LATER)
+    affected = [t for t in result.tickets if any("NE" in leg for leg in t.leg_ids)]
+    assert affected
+    for ticket in affected:
+        assert ticket.verdict == DISCARD_REBUILD
+        assert any("not primary geometry" in reason for reason in ticket.reasons)
+
+
+def test_recheck_invalidates_a_total_that_crossed_the_guardrail(card):
+    new_market = board(moved("CHI", total="47.5"), captured_at=LATER)
+    result = recheck_card(card, new_market, prices(two=-110, three=180, captured_at=LATER),
+                          rechecked_at=LATER)
+    affected = [t for t in result.tickets if any("CHI" in leg for leg in t.leg_ids)]
+    if affected:
+        for ticket in affected:
+            assert ticket.verdict == DISCARD_REBUILD
+            assert any("guardrail" in reason for reason in ticket.reasons)
+
+
+def test_recheck_invalidates_a_ticket_whose_price_turns_ev_negative(card):
+    unchanged = board(FIVE_PRIMARY, captured_at=LATER)
+    result = recheck_card(card, unchanged, prices(two=-300, three=100, captured_at=LATER),
+                          rechecked_at=LATER)
+    assert result.any_discarded
+    for ticket in result.discarded:
+        assert any("no longer positive EV" in reason for reason in ticket.reasons)
+
+
+def test_recheck_flags_a_leg_that_vanished_from_the_market(card):
+    survivors = [row for row in FIVE_PRIMARY if row[2] != "MIA"]
+    result = recheck_card(card, board(survivors, captured_at=LATER),
+                          prices(two=-110, three=180, captured_at=LATER),
+                          rechecked_at=LATER)
+    affected = [t for t in result.tickets if any("MIA" in leg for leg in t.leg_ids)]
+    for ticket in affected:
+        assert ticket.verdict == DISCARD_REBUILD
+        assert any("disappeared" in reason for reason in ticket.reasons)
+
+
+def test_a_missing_current_price_discards_rather_than_assuming_the_old_one(card):
+    result = recheck_card(card, board(FIVE_PRIMARY, captured_at=LATER), None,
+                          rechecked_at=LATER)
+    assert result.any_discarded
+    assert all("no current price" in " ".join(t.reasons) for t in result.discarded)
+
+
+def test_a_discarded_three_team_ticket_is_never_downgraded(card):
+    three_team = [t for t in card.tickets if t.n_legs == 3 and t.selected]
+    keys = tuple(t.ticket_key for t in three_team) or tuple(
+        t.ticket_key for t in card.tickets if t.n_legs == 3
+    )
+    new_market = board(moved("NE", spread="3.0"), captured_at=LATER)
+    result = recheck_card(card, new_market, prices(two=-110, three=180, captured_at=LATER),
+                          rechecked_at=LATER, tickets_to_check=keys)
+    for ticket in result.tickets:
+        # A discarded 3-team ticket stays a 3-team ticket in the record.
+        assert ticket.n_legs == 3
+    # Nothing in the result proposes a 2-leg replacement for a 3-leg ticket.
+    assert all(t.n_legs == 3 for t in result.tickets)
+
+
+def test_a_discard_triggers_a_rebuild_from_the_new_snapshot(card):
+    new_market = board(moved("NE", spread="3.0"), captured_at=LATER)
+    result = recheck_card(card, new_market, prices(two=-110, three=180, captured_at=LATER),
+                          rechecked_at=LATER)
+    assert result.any_discarded
+    assert result.rebuilt_card is not None
+    assert result.rebuilt_card.market_snapshot_id == new_market.snapshot_id
+    assert result.rebuilt_card.card_id != card.card_id
+    assert "NE" not in {leg.team for leg in result.rebuilt_card.qualifying_legs}
+
+
+def test_no_rebuild_when_everything_validates(card):
+    result = recheck_card(card, board(FIVE_PRIMARY, captured_at=LATER),
+                          prices(two=-110, three=180, captured_at=LATER),
+                          rechecked_at=LATER)
+    assert result.overall == VALIDATED
+    assert result.rebuilt_card is None
+
+
+# ---- 23-24. PROPOSED is not PLACED ------------------------------------------------------
+
+
+def test_a_proposed_card_creates_no_placement(tmp_path, card):
+    ledger = PlacementLedger(tmp_path / "p.jsonl")
+    assert ledger.entries() == []
+    assert card.selected_tickets, "the card does propose tickets"
+    assert ledger.entries() == [], "proposing must never create a placement"
+
+
+def test_placement_requires_an_explicit_call(tmp_path, card):
+    ledger = PlacementLedger(tmp_path / "p.jsonl")
+    ticket = card.selected_tickets[0]
+    record = ledger.record(
+        card, ticket.ticket_key, sportsbook="BookX", american_odds="-110",
+        placed_at=PLACED_AT, recorded_by="operator",
+    )
+    assert len(ledger.entries()) == 1
+    assert record.counts_toward_model
+    assert record.placement_id.startswith("plc_2026w03_")
+
+
+def test_an_unproposed_ticket_cannot_be_model_designated(tmp_path, card):
+    ledger = PlacementLedger(tmp_path / "p.jsonl")
+    unproposed = next(t for t in card.tickets if not t.selected)
+    with pytest.raises(PlacementRefused, match="NOT on the proposed card"):
+        ledger.record(card, unproposed.ticket_key, sportsbook="BookX",
+                      american_odds="-110", placed_at=PLACED_AT, recorded_by="operator")
+
+
+def test_an_unknown_ticket_is_refused(tmp_path, card):
+    ledger = PlacementLedger(tmp_path / "p.jsonl")
+    with pytest.raises(PlacementRefused, match="not on card"):
+        ledger.record(card, "nonsense|key", sportsbook="BookX", american_odds="-110",
+                      placed_at=PLACED_AT, recorded_by="operator")
+
+
+def test_exposure_cap_blocks_a_third_unit_on_one_leg(tmp_path, card):
+    ledger = PlacementLedger(tmp_path / "p.jsonl")
+    ticket = card.selected_tickets[0]
+    for _ in range(2):
+        ledger.record(card, ticket.ticket_key, sportsbook="BookX", american_odds="-110",
+                      placed_at=PLACED_AT, recorded_by="operator")
+    with pytest.raises(ExposureCapViolation, match="2-unit weekly cap"):
+        ledger.record(card, ticket.ticket_key, sportsbook="BookX", american_odds="-110",
+                      placed_at=PLACED_AT, recorded_by="operator")
+    assert max(ledger.current_exposure(2026, 3).values()) <= 2
+
+
+def test_an_external_bet_is_recorded_but_excluded_from_model_performance(tmp_path, card):
+    ledger = PlacementLedger(tmp_path / "p.jsonl")
+    unproposed = next(t for t in card.tickets if not t.selected)
+    record = ledger.record(
+        card, unproposed.ticket_key, sportsbook="BookX", american_odds="-110",
+        placed_at=PLACED_AT, recorded_by="operator", designation=EXTERNAL_NON_MODEL,
+    )
+    assert not record.counts_toward_model
+    assert len(ledger.entries()) == 1
+    assert ledger.model_entries() == []
+    assert ledger.current_exposure(2026, 3) == {}
+
+
+def test_a_ticket_discarded_at_recheck_cannot_be_placed(tmp_path, card):
+    """The defect the synthetic rehearsal exposed: stale tickets must not be reusable."""
+    ledger = PlacementLedger(tmp_path / "p.jsonl")
+    new_market = board(moved("NE", spread="3.0"), captured_at=LATER)
+    result = recheck_card(card, new_market, prices(two=-110, three=180, captured_at=LATER),
+                          rechecked_at=LATER)
+    discarded = result.discarded[0]
+    with pytest.raises(PlacementRefused, match="DISCARDED at re-check"):
+        ledger.record(card, discarded.ticket_key, sportsbook="BookX",
+                      american_odds="-110", placed_at=PLACED_AT,
+                      recorded_by="operator", recheck=result)
+
+
+def test_a_validated_ticket_can_be_placed_with_the_recheck_attached(tmp_path, card):
+    ledger = PlacementLedger(tmp_path / "p.jsonl")
+    new_market = board(moved("NE", spread="3.0"), captured_at=LATER)
+    result = recheck_card(card, new_market, prices(two=-110, three=180, captured_at=LATER),
+                          rechecked_at=LATER)
+    if result.validated:
+        record = ledger.record(
+            card, result.validated[0].ticket_key, sportsbook="BookX",
+            american_odds="-110", placed_at=PLACED_AT, recorded_by="operator",
+            recheck=result,
+        )
+        assert record.counts_toward_model
+
+
+def test_a_ticket_absent_from_the_recheck_is_refused(tmp_path, card):
+    ledger = PlacementLedger(tmp_path / "p.jsonl")
+    keys = (card.selected_tickets[0].ticket_key,)
+    result = recheck_card(card, board(FIVE_PRIMARY, captured_at=LATER),
+                          prices(two=-110, three=180, captured_at=LATER),
+                          rechecked_at=LATER, tickets_to_check=keys)
+    other = next(t for t in card.selected_tickets if t.ticket_key not in keys)
+    with pytest.raises(PlacementRefused, match="not covered by re-check"):
+        ledger.record(card, other.ticket_key, sportsbook="BookX", american_odds="-110",
+                      placed_at=PLACED_AT, recorded_by="operator", recheck=result)
+
+
+def test_placement_requires_a_book_and_a_positive_stake(tmp_path, card):
+    ledger = PlacementLedger(tmp_path / "p.jsonl")
+    ticket = card.selected_tickets[0]
+    with pytest.raises(PlacementRefused):
+        ledger.record(card, ticket.ticket_key, sportsbook="  ", american_odds="-110",
+                      placed_at=PLACED_AT, recorded_by="operator")
+    with pytest.raises(PlacementRefused):
+        ledger.record(card, ticket.ticket_key, sportsbook="BookX", american_odds="-110",
+                      placed_at=PLACED_AT, recorded_by="operator", stake_units=0)
+
+
+# ---- 26-27. settlement ------------------------------------------------------------------
+
+
+def test_model_grading_is_separate_from_book_settlement(tmp_path, card):
+    ledger = PlacementLedger(tmp_path / "p.jsonl")
+    ticket = card.selected_tickets[0]
+    placement = ledger.record(card, ticket.ticket_key, sportsbook="BookX",
+                              american_odds="-110", placed_at=PLACED_AT,
+                              recorded_by="operator")
+    legs = tuple(
+        grade_leg_settlement(leg_id=leg_id, team=leg_id.split("-")[-1],
+                             teased_spread="7.5", final_margin=3)
+        for leg_id in placement.leg_ids
+    )
+    record = settle_ticket(placement=placement.to_dict(), legs=legs,
+                           book_settlement=BOOK_VOID, settled_at=SETTLED_AT,
+                           profit_loss_units=0.0)
+    assert record.model_ticket_result == "WIN"
+    assert record.book_settlement == BOOK_VOID
+    assert record.results_agree is False
+    assert record.profit_loss_units == 0.0
+
+
+def test_a_cancelled_game_records_the_books_own_result(tmp_path, card):
+    ledger = PlacementLedger(tmp_path / "p.jsonl")
+    ticket = card.selected_tickets[0]
+    placement = ledger.record(card, ticket.ticket_key, sportsbook="BookX",
+                              american_odds="-110", placed_at=PLACED_AT,
+                              recorded_by="operator")
+    legs = tuple(
+        grade_leg_settlement(leg_id=leg_id, team="X", teased_spread="7.5", final_margin=-20)
+        for leg_id in placement.leg_ids
+    )
+    record = settle_ticket(placement=placement.to_dict(), legs=legs,
+                           book_settlement=BOOK_CANCELLED, settled_at=SETTLED_AT)
+    assert record.model_ticket_result == "LOSS"
+    assert record.book_settlement == BOOK_CANCELLED
+    assert record.profit_loss_units == 0.0
+
+
+def test_profit_is_derived_from_the_recorded_price_on_a_win(tmp_path, card):
+    ledger = PlacementLedger(tmp_path / "p.jsonl")
+    ticket = card.selected_tickets[0]
+    placement = ledger.record(card, ticket.ticket_key, sportsbook="BookX",
+                              american_odds="-110", placed_at=PLACED_AT,
+                              recorded_by="operator")
+    legs = tuple(
+        grade_leg_settlement(leg_id=leg_id, team="X", teased_spread="7.5", final_margin=3)
+        for leg_id in placement.leg_ids
+    )
+    record = settle_ticket(placement=placement.to_dict(), legs=legs,
+                           book_settlement=BOOK_WIN, settled_at=SETTLED_AT)
+    assert record.profit_loss_units == pytest.approx(100 / 110)
+
+
+def test_a_primary_leg_can_never_settle_as_a_push():
+    with pytest.raises(PrimaryPushInSettlement):
+        grade_leg_settlement(leg_id="g-A", team="A", teased_spread="-2.0", final_margin=2)
+    # ...and the half-point geometry never produces one.
+    for teased, margin in (("7.5", -7), ("8.5", -8), ("-1.5", 2), ("-2.5", 3)):
+        assert grade_leg_settlement(leg_id="g", team="A", teased_spread=teased,
+                                    final_margin=margin).model_result in {"WIN", "LOSS"}
+
+
+def test_an_invalid_book_settlement_is_refused(tmp_path, card):
+    from teaser_model_v1.live.schemas import MarketValidationError
+
+    ledger = PlacementLedger(tmp_path / "p.jsonl")
+    ticket = card.selected_tickets[0]
+    placement = ledger.record(card, ticket.ticket_key, sportsbook="BookX",
+                              american_odds="-110", placed_at=PLACED_AT,
+                              recorded_by="operator")
+    legs = (grade_leg_settlement(leg_id="g", team="A", teased_spread="7.5", final_margin=3),)
+    with pytest.raises(MarketValidationError):
+        settle_ticket(placement=placement.to_dict(), legs=legs,
+                      book_settlement="SORT_OF_WON", settled_at=SETTLED_AT)
+
+
+# ---- 11 (spec). market-quality naming ---------------------------------------------------
+
+
+def test_a_final_observation_is_never_called_a_close():
+    with pytest.raises(ValueError, match="true_timestamped_close"):
+        LineObservation(leg_id="g", label=TRUE_TIMESTAMPED_CLOSE, spread="2.5",
+                        total="44.5", sportsbook="BookX", observed_at=CAPTURED,
+                        market_snapshot_id="mkt_1")
+
+
+def test_line_movement_declines_to_compute_clv():
+    earlier = LineObservation(leg_id="g", label=GRADING_LINE, spread="2.5", total="44.5",
+                              sportsbook="BookX", observed_at=CAPTURED,
+                              market_snapshot_id="mkt_1")
+    later = LineObservation(leg_id="g", label=FINAL_OBSERVED, spread="1.5", total="45.5",
+                            sportsbook="BookX", observed_at=LATER,
+                            market_snapshot_id="mkt_2")
+    movement = line_movement(earlier, later)
+    assert movement["spread_change"] == "-1.0"
+    assert movement["total_change"] == "1.0"
+    assert movement["clv_computed"] is False
+    assert "not a documented close" in movement["clv_note"]
+
+
+def test_line_movement_refuses_to_compare_different_legs():
+    a = LineObservation(leg_id="g1", label=GRADING_LINE, spread="2.5", total="44.5",
+                        sportsbook="B", observed_at=CAPTURED, market_snapshot_id="m")
+    b = LineObservation(leg_id="g2", label=FINAL_OBSERVED, spread="2.5", total="44.5",
+                        sportsbook="B", observed_at=LATER, market_snapshot_id="m")
+    with pytest.raises(ValueError, match="SAME leg"):
+        line_movement(a, b)
+
+
+# ---- 25. zero-bet weeks -----------------------------------------------------------------
+
+
+def test_zero_qualifier_and_zero_bet_weeks_appear_in_the_ledger(tmp_path):
+    ledger = SeasonLedger(tmp_path / "season.jsonl")
+    ledger.record_week(WeekLedgerEntry(
+        season=2026, week=1, recorded_at=CAPTURED, games_scanned=16,
+        qualifying_primary_legs=0, top_four_legs=0, positive_ev_tickets=0,
+        proposed_tickets=0, placed_tickets=0, units_staked=0.0,
+    ))
+    ledger.record_week(WeekLedgerEntry(
+        season=2026, week=2, recorded_at=CAPTURED, games_scanned=15,
+        qualifying_primary_legs=3, top_four_legs=3, positive_ev_tickets=2,
+        proposed_tickets=2, placed_tickets=0, units_staked=0.0,
+    ))
+    status = ledger.season_status(2026)
+    assert status["weeks_recorded"] == 2
+    assert status["weeks_with_zero_qualifying_legs"] == 1
+    assert status["weeks_with_zero_placements"] == 2
+    assert status["total_placed_tickets"] == 0
+
+
+def test_season_status_counts_every_week_not_just_active_ones(tmp_path):
+    ledger = SeasonLedger(tmp_path / "season.jsonl")
+    for week in range(1, 6):
+        ledger.record_week(WeekLedgerEntry(
+            season=2026, week=week, recorded_at=CAPTURED, games_scanned=16,
+            qualifying_primary_legs=0 if week % 2 else 2,
+            top_four_legs=0 if week % 2 else 2,
+            positive_ev_tickets=0, proposed_tickets=0, placed_tickets=0,
+            units_staked=0.0,
+        ))
+    assert ledger.season_status(2026)["weeks_recorded"] == 5
+    assert len(ledger.latest_per_week(2026)) == 5
+
+
+# ---- 28. reproducible report ------------------------------------------------------------
+
+
+def test_report_is_reproducible(card):
+    first = render_weekly_report(card, generated_at=CAPTURED)
+    second = render_weekly_report(card, generated_at=CAPTURED)
+    assert first == second
+
+
+def test_report_marks_an_unchecked_card_as_stale(card):
+    text = render_weekly_report(card, generated_at=CAPTURED)
+    assert NOT_YET_RECHECKED in text
+    assert "stale until re-checked" in text
+    assert NOT_PLACED in text
+
+
+def test_report_shows_discard_and_rebuild(card):
+    new_market = board(moved("NE", spread="3.0"), captured_at=LATER)
+    result = recheck_card(card, new_market, prices(two=-110, three=180, captured_at=LATER),
+                          rechecked_at=LATER)
+    text = render_weekly_report(card, recheck=result, generated_at=LATER)
+    assert DISCARD_REBUILD in text
+    assert "not** substituted" in text or "not substituted" in text
+
+
+def test_report_states_no_constructible_ticket():
+    card = grade_week(board(FIVE_PRIMARY[:1]), prices(), graded_at=CAPTURED)
+    text = render_weekly_report(card, generated_at=CAPTURED)
+    assert "NO CONSTRUCTIBLE LIVE PRIMARY TICKET" in text
+
+
+def test_report_warns_when_no_price_was_supplied():
+    card = grade_week(board(FIVE_PRIMARY), None, graded_at=CAPTURED)
+    text = render_weekly_report(card, generated_at=CAPTURED)
+    assert "No actual teaser price was supplied" in text
+    assert "no ticket is placement-eligible" in text.lower()

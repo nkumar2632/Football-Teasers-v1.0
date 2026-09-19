@@ -114,6 +114,27 @@ the 2027 preseason review.
   fails the re-check is **discarded**, not voided.
 - Hypothetical teaser prices must be labeled hypothetical, every time, in every output.
 
+## Prospective live operations (Phase 4)
+
+`src/teaser_model_v1/live/` and `src/teaser_model_v1/cli/` operate the frozen model week to
+week. They **read** the engine and never change it. Rules for that layer:
+
+- **No automated wager placement, ever.** Nothing in this repository may submit a bet to a
+  sportsbook. `record-placement` writes down what the operator says they already did.
+- **PROPOSED is never PLACED.** A card is a proposal. Only an explicit operator action
+  creates a placement record.
+- **Records are append-only.** A later market or price capture is a NEW snapshot, never an
+  edit. Corrections are new records that point at the superseded one; history is never
+  rewritten.
+- **Timestamps carry an explicit offset**, and half-points stay exact `Decimal` values.
+- **A ticket with no actual captured price has no EV** and is never placement-eligible. A
+  hypothetical price can never become a live one.
+- **Do not re-implement a model rule in `live/`.** Geometry, ranking, ticket construction,
+  EV and selection all come from `engine/`. A test asserts no live module rebinds a frozen
+  constant and that the engine never imports upward.
+
+Weekly checklist: `LIVE_OPERATIONS.md`. Design: `reports/phase4_operations_design.md`.
+
 ## Change control
 
 The v1.0 operational model does not change during 2026. Research may continue but cannot

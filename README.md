@@ -77,6 +77,17 @@ src/teaser_model_v1/
   audit/                   The mandatory pre-analysis data-quality gate.
     data_quality.py        Checks, thresholds, PASS/FAIL verdict.
     report.py              Markdown/JSON rendering.
+  live/                    Prospective weekly operations. Reads the engine only.
+    schemas.py             Provider-neutral market and teaser-price records.
+    snapshot.py            Append-only store; corrections never rewrite history.
+    market.py              Manual CSV ingestion + optional provider adapter interface.
+    pricing.py             Capture of the ACTUAL sportsbook teaser menu.
+    card.py                Grading-time board and the PROPOSED card.
+    recheck.py             Placement-time re-check, discard and rebuild.
+    placement.py           Explicit placement ledger. Records; never places.
+    settlement.py          Model grade and book settlement, kept separate.
+    ledger.py              Market-quality record and the append-only season ledger.
+  cli/                     `teaser-live` operator commands.
   analysis/                Measures the frozen model. Never changes it.
     grading.py             WIN/LOSS grading and the no-PUSH invariant.
     calibration.py         Predeclared buckets, Brier, exact binomial intervals.
@@ -93,6 +104,7 @@ scripts/
   run_phase2b_validation.py  Out-of-sample validation on 2018-2023. No prices, no EV.
   run_phase2c_independence_audit.py  Audit of the ticket independence assumption.
   run_phase3_pricing.py    Fair price and HYPOTHETICAL price sensitivity.
+  run_phase4_rehearsal.py  Synthetic end-to-end rehearsal of the live workflow.
 
 tests/                     Written before any historical analysis.
 data/raw/                  Verbatim source snapshots plus provenance manifests.
@@ -197,6 +209,11 @@ sensitivity grid. **No actual historical teaser prices exist for this source and
 were invented, so no realized ROI is claimed anywhere.** See
 `reports/phase3_fair_price_distribution.md`, `reports/phase3_pricing_sensitivity.md`
 and `reports/phase3_historical_price_frontier.md`.
+
+Phase 4 complete: prospective operations infrastructure for the 2026 NFL season — market and
+teaser-price capture, grading-time cards, placement-time re-check, an explicit placement
+ledger and settlement. **Nothing in this repository places a wager.** Weekly checklist:
+`LIVE_OPERATIONS.md`. Design: `reports/phase4_operations_design.md`.
 
 **No profitability, EV or ROI figure has been produced.** No historical teaser prices exist
 in the source and none have been invented.
