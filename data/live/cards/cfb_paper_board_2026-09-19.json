@@ -1,0 +1,153 @@
+{
+  "actual_placements": 0,
+  "actual_units_staked": 0,
+  "banner": "CFB PAPER/RESEARCH TRACK \u2014 NOT LIVE v1.0",
+  "board_id": "cfbboard_20260919_ffb7af817b5a",
+  "ev_note": "EV UNAVAILABLE: no actual contemporaneous CFB teaser price. None invented.",
+  "frozen_at": "2026-09-19T18:46:31+00:00",
+  "games": 37,
+  "kind": "cfb_paper_board",
+  "line_label": "archived_pregame_reference",
+  "model_version": "v1.0",
+  "outcomes_joined_at_freeze": false,
+  "primary_qualifiers": [
+    {
+      "geometry_class": "PRIMARY",
+      "keys": 2,
+      "kickoff_et": "15:30",
+      "leg_id": "MississippiState@SouthCarolina-South Carolina",
+      "opponent": "Mississippi State",
+      "p_est": 0.7015388804893103,
+      "rank": 1,
+      "source": "operator board [afternoon]; CONFLICT vs search: venue REVERSED and SC -3.5/58.5",
+      "spread": "-7.5",
+      "team": "South Carolina",
+      "teased_spread": "-1.5",
+      "total": "48.0",
+      "track": "PAPER"
+    },
+    {
+      "geometry_class": "PRIMARY",
+      "keys": 2,
+      "kickoff_et": "16:00",
+      "leg_id": "Stanford@Duke-Stanford",
+      "opponent": "Duke",
+      "p_est": 0.6969084959850627,
+      "rank": 2,
+      "source": "operator board [afternoon]; CONFLICT vs search: -9.5/-10.5/51.5 \u2014 a 7-point disagreement",
+      "spread": "2.5",
+      "team": "Stanford",
+      "teased_spread": "8.5",
+      "total": "49.5",
+      "track": "PAPER"
+    }
+  ],
+  "secondary_top": [
+    {
+      "keys": 1,
+      "p_est": 0.6971593818727904,
+      "rank": 1,
+      "spread": "-3.5",
+      "team": "Clemson",
+      "teased_spread": "2.5",
+      "total": "43.5"
+    },
+    {
+      "keys": 1,
+      "p_est": 0.6971593818727904,
+      "rank": 2,
+      "spread": "3.5",
+      "team": "North Carolina",
+      "teased_spread": "9.5",
+      "total": "43.5"
+    },
+    {
+      "keys": 1,
+      "p_est": 0.6831416751252382,
+      "rank": 3,
+      "spread": "-3.5",
+      "team": "James Madison",
+      "teased_spread": "2.5",
+      "total": "47.5"
+    },
+    {
+      "keys": 1,
+      "p_est": 0.6831416751252382,
+      "rank": 4,
+      "spread": "3.5",
+      "team": "San Diego State",
+      "teased_spread": "9.5",
+      "total": "47.5"
+    },
+    {
+      "keys": 1,
+      "p_est": 0.6799662912879088,
+      "rank": 5,
+      "spread": "3.5",
+      "team": "Colorado",
+      "teased_spread": "9.5",
+      "total": "48.5"
+    },
+    {
+      "keys": 1,
+      "p_est": 0.6799662912879088,
+      "rank": 6,
+      "spread": "-3.5",
+      "team": "Northwestern",
+      "teased_spread": "2.5",
+      "total": "48.5"
+    },
+    {
+      "keys": 0,
+      "p_est": 0.6771593818727903,
+      "rank": 7,
+      "spread": "23.5",
+      "team": "Bowling Green",
+      "teased_spread": "29.5",
+      "total": "43.5"
+    },
+    {
+      "keys": 0,
+      "p_est": 0.6771593818727903,
+      "rank": 8,
+      "spread": "-23.5",
+      "team": "Iowa State",
+      "teased_spread": "-17.5",
+      "total": "43.5"
+    },
+    {
+      "keys": 1,
+      "p_est": 0.6769084959850626,
+      "rank": 9,
+      "spread": "-4.5",
+      "team": "BYU",
+      "teased_spread": "1.5",
+      "total": "49.5"
+    },
+    {
+      "keys": 1,
+      "p_est": 0.6769084959850626,
+      "rank": 10,
+      "spread": "4.5",
+      "team": "Colorado State",
+      "teased_spread": "10.5",
+      "total": "49.5"
+    }
+  ],
+  "sides": 74,
+  "slate_date": "2026-09-19",
+  "tickets": [
+    {
+      "ev": null,
+      "legs": [
+        "South Carolina",
+        "Stanford"
+      ],
+      "model_implied_fair_break_even_profit": 1.0453728910580715,
+      "n_legs": 2,
+      "p_ticket": 0.4889084060768499,
+      "placement_eligible": false,
+      "price_is_hypothetical": false
+    }
+  ]
+}

@@ -49,3 +49,4 @@ South Dakota,Boise State,Boise State,-24.5,51.5,22:00,late,Yahoo Sports,"FCS opp
 James Madison,San Diego State,James Madison,-3.5,47.5,22:00,late,Yahoo Sports,
 Fresno State,San Jose State,Fresno State,-7.5,53.5,23:00,late,Yahoo Sports,"PRIMARY geometry; fails total guardrail"
 Montana,Oregon State,Oregon State,-21.5,49.5,23:00,late,Yahoo Sports,"FCS opponent; spec silent - AMBIGUITIES A-9"
+NC State,Vanderbilt,Vanderbilt,-3.5,50.5,12:45,noon,operator-supplied odds breakdown,"spread priced -108/-112, total 50.5 (-110); no book named, no timestamp. CONFLICT vs search: had -3/51. Resolves the last DATA_INSUFFICIENT game."

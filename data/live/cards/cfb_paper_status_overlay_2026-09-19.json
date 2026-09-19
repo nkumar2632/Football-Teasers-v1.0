@@ -1,0 +1,51 @@
+{
+  "board_id": "cfbboard_20260919_ffb7af817b5a",
+  "joined_at": "2026-09-19T18:47:01+00:00",
+  "kind": "cfb_paper_status_overlay",
+  "note": "Joined strictly AFTER the board was frozen. Rankings not recomputed.",
+  "rows": [
+    {
+      "clock": "",
+      "cover_status": "NOT STARTED",
+      "current_margin": null,
+      "game_status": "NOT STARTED",
+      "is_result": false,
+      "leg_id": "MississippiState@SouthCarolina-South Carolina",
+      "line_label": "archived_pregame_reference",
+      "p_est": 0.7015388804893103,
+      "pregame_line": "-7.5",
+      "rank": 1,
+      "team": "South Carolina",
+      "teased_line": "-1.5",
+      "total": "48.0"
+    },
+    {
+      "clock": "",
+      "cover_status": "NOT STARTED",
+      "current_margin": null,
+      "game_status": "NOT STARTED",
+      "is_result": false,
+      "leg_id": "Stanford@Duke-Stanford",
+      "line_label": "archived_pregame_reference",
+      "p_est": 0.6969084959850627,
+      "pregame_line": "2.5",
+      "rank": 2,
+      "team": "Stanford",
+      "teased_line": "8.5",
+      "total": "49.5"
+    }
+  ],
+  "ticket_status": [
+    {
+      "ev": null,
+      "legs": [
+        "South Carolina",
+        "Stanford"
+      ],
+      "legs_settled": 0,
+      "p_ticket": 0.4889084060768499,
+      "placement_eligible": false,
+      "status": "PENDING"
+    }
+  ]
+}
