@@ -77,11 +77,16 @@ src/teaser_model_v1/
   audit/                   The mandatory pre-analysis data-quality gate.
     data_quality.py        Checks, thresholds, PASS/FAIL verdict.
     report.py              Markdown/JSON rendering.
+  analysis/                Measures the frozen model. Never changes it.
+    grading.py             WIN/LOSS grading and the no-PUSH invariant.
+    calibration.py         Predeclared buckets, Brier, exact binomial intervals.
+    backtest.py            Weekly construction and ticket enumeration.
 
 scripts/
   ingest_nfl.py            Snapshot the source, build processed games and legs frames.
   run_data_quality_audit.py  Run the gate. Exits non-zero on FAIL.
   investigate_line_composition.py  Season-by-season line-shape provenance report.
+  run_phase2_calibration.py  Calibration of P_est against outcomes. No prices, no EV.
 
 tests/                     Written before any historical analysis.
 data/raw/                  Verbatim source snapshots plus provenance manifests.
@@ -107,6 +112,7 @@ python -m pytest                                              # unit tests
 python scripts/ingest_nfl.py --from-url                       # snapshot + process NFL data
 python scripts/run_data_quality_audit.py                      # the mandatory gate
 python scripts/investigate_line_composition.py                # line-shape provenance
+python scripts/run_phase2_calibration.py                      # calibration (no pricing)
 ```
 
 `scripts/ingest_nfl.py` also accepts `--from-clone /path/to/nfldata` or
@@ -160,4 +166,9 @@ data-quality audit.
 Phase 1.5 complete: CFB primary/secondary interpretation corrected, key numbers stated
 explicitly as {3, 7}, line-composition shift investigated.
 
-**No model-performance results have been produced.**
+Phase 2 complete: NFL 2024 and 2025 calibration of `P_est` against actual outcomes, reported
+per season. See `reports/phase2_nfl_2024_calibration.md`,
+`reports/phase2_nfl_2025_calibration.md` and `reports/phase2_nfl_comparison.md`.
+
+**No profitability, EV or ROI figure has been produced.** No historical teaser prices exist
+in the source and none have been invented.
