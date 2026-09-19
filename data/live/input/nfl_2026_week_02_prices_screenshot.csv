@@ -1,0 +1,8 @@
+# ACTUAL teaser menu, transcribed from the operator's screenshot.
+# Menu header: '2-6T Teaser (6 pts FB, 4 pts BK)'. Football leg = 6 points, matching frozen v1.0.
+# v1.0 uses ONLY 2-team and 3-team tickets. The 4/5/6-team rungs (+300/+450/+700) are
+# visible on the menu and are deliberately NOT recorded: recording them would imply an
+# expansion of v1.0 that the frozen spec does not permit.
+ticket_size,american_odds,decimal_odds,sportsbook,captured_at,source_reference,notes
+2,-110,,USER_SPORTSBOOK_SCREENSHOT,2026-09-19T14:50:00-04:00,user sportsbook screenshot,6 pts FB; ALL picks must win
+3,+170,,USER_SPORTSBOOK_SCREENSHOT,2026-09-19T14:50:00-04:00,user sportsbook screenshot,6 pts FB; ALL picks must win
