@@ -1,78 +1,125 @@
-# NFL 2026 Week 2 — Teaser Model v1.0 live card
+# NFL Teaser v1.0 — 2026 Week 2
 
-Report generated: `2026-09-19T21:51:51+00:00`
+🔵 **SHADOW — NOT PLACED** · 🟡 **PENDING RECHECK**
+
+|                     |                             |
+|---------------------|-----------------------------|
+| **Sportsbook**      | USER_SPORTSBOOK_SCREENSHOT  |
+| **Graded**          | `2026-09-19T21:51:41+00:00` |
+| **Re-check**        | NOT YET RECHECKED           |
+| **Games scanned**   | 15                          |
+| **Qualifying legs** | 4                           |
 
 > Frozen Teaser Model v1.0. Nothing in this system places a wager.
 
-## Market snapshot
+## Qualifying legs
 
-| field                   | value                      |
-|-------------------------|----------------------------|
-| sportsbook / source     | USER_SPORTSBOOK_SCREENSHOT |
-| market snapshot         | mkt_2026w02_8ccd64d8fae1   |
-| teaser price snapshot   | prc_2026w02_d29ff0515315   |
-| graded at               | 2026-09-19T21:51:41+00:00  |
-| games scanned           | 15                         |
-| qualifying primary legs | 4                          |
+| Rank | Team | Original → Teased | Total | P_est |
+|------|------|-------------------|-------|-------|
+| 1    | TB   | -8.5 → -2.5       | 41.5  | 75.5% |
+| 2    | ATL  | 2.5 → 8.5         | 43.5  | 74.7% |
+| 3    | CIN  | 2.5 → 8.5         | 45.5  | 74.0% |
+| 4    | BAL  | -8.5 → -2.5       | 46    | 73.8% |
 
-## Primary legs
+Top four retained: **TB, ATL, CIN, BAL**
 
-| Rank | Team | Opp | Original | Teased | Total | P_est |
-|------|------|-----|----------|--------|-------|-------|
-| 1    | TB   | CLE | -8.5     | -2.5   | 41.5  | 76%   |
-| 2    | ATL  | CAR | 2.5      | 8.5    | 43.5  | 75%   |
-| 3    | CIN  | HOU | 2.5      | 8.5    | 45.5  | 74%   |
-| 4    | BAL  | NO  | -8.5     | -2.5   | 46    | 74%   |
+P_est is a *model-estimated hit probability*, shown to one decimal place. Full precision is preserved in the stored record and listed under Audit.
 
-P_est shown as a whole percent: *model-estimated hit probability*.
+## Proposed card
 
-Top four retained for construction: TB, ATL, CIN, BAL
+| Ticket         | Price | P_ticket | Break-even | EV%       | Stake |
+|----------------|-------|----------|------------|-----------|-------|
+| **TB+ATL+CIN** | 170   | 41.7%    | 37.0%      | **12.7%** | 1u    |
+| **TB+ATL+BAL** | 170   | 41.6%    | 37.0%      | **12.4%** | 1u    |
+| **CIN+BAL**    | -110  | 54.6%    | 52.4%      | **4.3%**  | 1u    |
 
-## Ticket board
+Leg exposure: **TB 2u** · **ATL 2u** · **CIN 2u** · **BAL 2u**
 
-| Ticket      | Legs | P_ticket | Offered | Break-even | EV%    | Status      | On card |
-|-------------|------|----------|---------|------------|--------|-------------|---------|
-| TB+ATL+CIN  | 3    | 41.7%    | 170     | 37.0%      | 12.70% | POSITIVE_EV | YES     |
-| TB+ATL+BAL  | 3    | 41.6%    | 170     | 37.0%      | 12.44% | POSITIVE_EV | YES     |
-| TB+CIN+BAL  | 3    | 41.2%    | 170     | 37.0%      | 11.34% | POSITIVE_EV | no      |
-| ATL+CIN+BAL | 3    | 40.8%    | 170     | 37.0%      | 10.17% | POSITIVE_EV | no      |
-| TB+ATL      | 2    | 56.4%    | -110    | 52.4%      | 7.70%  | POSITIVE_EV | no      |
-| TB+CIN      | 2    | 55.9%    | -110    | 52.4%      | 6.65%  | POSITIVE_EV | no      |
-| TB+BAL      | 2    | 55.7%    | -110    | 52.4%      | 6.40%  | POSITIVE_EV | no      |
-| ATL+CIN     | 2    | 55.3%    | -110    | 52.4%      | 5.54%  | POSITIVE_EV | no      |
-| ATL+BAL     | 2    | 55.2%    | -110    | 52.4%      | 5.29%  | POSITIVE_EV | no      |
-| CIN+BAL     | 2    | 54.6%    | -110    | 52.4%      | 4.26%  | POSITIVE_EV | YES     |
+Card `card_2026w02_492bb1ded5b3` — **PROPOSED ONLY. This is not a wager.**
 
-Every constructible ticket is shown, including negative-EV ones. **"Best available" does not mean positive EV.**
+## Full ticket board
 
-## Proposed live card
+| Ticket         | Price | P_ticket | Break-even | EV%       | Status        |
+|----------------|-------|----------|------------|-----------|---------------|
+| **TB+ATL+CIN** | 170   | 41.7%    | 37.0%      | **12.7%** | 🟢 POSITIVE_EV |
+| **TB+ATL+BAL** | 170   | 41.6%    | 37.0%      | **12.4%** | 🟢 POSITIVE_EV |
+| TB+CIN+BAL     | 170   | 41.2%    | 37.0%      | **11.3%** | 🟢 POSITIVE_EV |
+| ATL+CIN+BAL    | 170   | 40.8%    | 37.0%      | **10.2%** | 🟢 POSITIVE_EV |
+| TB+ATL         | -110  | 56.4%    | 52.4%      | **7.7%**  | 🟢 POSITIVE_EV |
+| TB+CIN         | -110  | 55.9%    | 52.4%      | **6.7%**  | 🟢 POSITIVE_EV |
+| TB+BAL         | -110  | 55.7%    | 52.4%      | **6.4%**  | 🟢 POSITIVE_EV |
+| ATL+CIN        | -110  | 55.3%    | 52.4%      | **5.5%**  | 🟢 POSITIVE_EV |
+| ATL+BAL        | -110  | 55.2%    | 52.4%      | **5.3%**  | 🟢 POSITIVE_EV |
+| **CIN+BAL**    | -110  | 54.6%    | 52.4%      | **4.3%**  | 🟢 POSITIVE_EV |
 
-| Ticket     | Legs | Stake  | EV%    | Offered |
-|------------|------|--------|--------|---------|
-| TB+ATL+CIN | 3    | 1 unit | 12.70% | 170     |
-| TB+ATL+BAL | 3    | 1 unit | 12.44% | 170     |
-| CIN+BAL    | 2    | 1 unit | 4.26%  | -110    |
+Every constructible ticket is shown, including negative-EV ones. **"Best available" does not mean positive EV.** Bold ticket = on the proposed card.
 
-Aggregate leg exposure:
+## Re-check
 
-| Leg                 | Units |
-|---------------------|-------|
-| 2026_02_CAR_ATL-ATL | 2     |
-| 2026_02_CIN_HOU-CIN | 2     |
-| 2026_02_CLE_TB-TB   | 2     |
-| 2026_02_NO_BAL-BAL  | 2     |
+🟡 **NOT YET RECHECKED**
 
-Card id: `card_2026w02_492bb1ded5b3` — **PROPOSED ONLY. This is not a wager.**
-
-## Re-check status
-
-**NOT YET RECHECKED**
+| Proposed ticket | Verdict   |
+|-----------------|-----------|
+| TB+ATL+CIN      | 🟡 PENDING |
+| TB+ATL+BAL      | 🟡 PENDING |
+| CIN+BAL         | 🟡 PENDING |
 
 > The card above was graded against `mkt_2026w02_8ccd64d8fae1` at `2026-09-19T21:51:41+00:00`. **Treat it as stale until re-checked against a current snapshot.**
 
-## Placement status
+## Placement
 
-**NOT PLACED — nothing has been wagered**
+🔵 **NOT PLACED — nothing has been wagered**
 
 A proposed card is never a placement. Nothing counts as wagered until it is explicitly recorded.
 
+---
+
+## Audit
+
+| field                 | value                       |
+|-----------------------|-----------------------------|
+| card id               | `card_2026w02_492bb1ded5b3` |
+| market snapshot       | `mkt_2026w02_8ccd64d8fae1`  |
+| teaser price snapshot | `prc_2026w02_d29ff0515315`  |
+| sportsbook / source   | USER_SPORTSBOOK_SCREENSHOT  |
+| graded at             | `2026-09-19T21:51:41+00:00` |
+| report generated      | `2026-09-19T22:10:49+00:00` |
+| card status           | PROPOSED                    |
+| games scanned         | 15                          |
+
+Source notes: Tonight's grading snapshot from real-book screenshots. NO placement-time recheck performed. Nothing placed.
+
+### Full-precision legs
+
+| Leg id                | Opp | Total | P_raw              | Bump | P_est              |
+|-----------------------|-----|-------|--------------------|------|--------------------|
+| `2026_02_CLE_TB-TB`   | CLE | 41.5  | 0.6850713499837193 | 0.07 | 0.7550713499837194 |
+| `2026_02_CAR_ATL-ATL` | CAR | 43.5  | 0.6771593818727903 | 0.07 | 0.7471593818727904 |
+| `2026_02_CIN_HOU-CIN` | HOU | 45.5  | 0.6698722507821999 | 0.07 | 0.7398722507822    |
+| `2026_02_NO_BAL-BAL`  | NO  | 46    | 0.6681398851771989 | 0.07 | 0.738139885177199  |
+
+### Full-precision tickets
+
+| Ticket      | P_ticket            | Break-even          | EV%    |
+|-------------|---------------------|---------------------|--------|
+| TB+ATL+CIN  | 0.4174053250861558  | 0.37037037037037035 | 12.70% |
+| TB+ATL+BAL  | 0.4164279960570443  | 0.37037037037037035 | 12.44% |
+| TB+CIN+BAL  | 0.41236652608064744 | 0.37037037037037035 | 11.34% |
+| ATL+CIN+BAL | 0.4080455691215005  | 0.37037037037037035 | 10.17% |
+| TB+ATL      | 0.5641586431236891  | 0.5238095238095238  | 7.70%  |
+| TB+CIN      | 0.5586563392136087  | 0.5238095238095238  | 6.65%  |
+| TB+BAL      | 0.5573482795775753  | 0.5238095238095238  | 6.40%  |
+| ATL+CIN     | 0.5528024935592587  | 0.5238095238095238  | 5.54%  |
+| ATL+BAL     | 0.5515081403446485  | 0.5238095238095238  | 5.29%  |
+| CIN+BAL     | 0.5461292182381688  | 0.5238095238095238  | 4.26%  |
+
+### Exposure by leg id
+
+| Leg id                | Units |
+|-----------------------|-------|
+| `2026_02_CAR_ATL-ATL` | 2     |
+| `2026_02_CIN_HOU-CIN` | 2     |
+| `2026_02_CLE_TB-TB`   | 2     |
+| `2026_02_NO_BAL-BAL`  | 2     |
+
+Presentation only: this report formats the stored card and derives no model value. Probabilities, EV, selection and exposure are read from `card_2026w02_492bb1ded5b3` exactly as the grading layer wrote them.

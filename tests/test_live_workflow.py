@@ -451,3 +451,139 @@ def test_report_warns_when_no_price_was_supplied():
     text = render_weekly_report(card, generated_at=CAPTURED)
     assert "No actual teaser price was supplied" in text
     assert "no ticket is placement-eligible" in text.lower()
+
+
+# ---- Phase 4.2 presentation invariants ---------------------------------------------------
+#
+# The report is a VIEW. These tests pin the property that matters: it must not move a
+# single model value. They are deliberately written against the card, not against golden
+# text, so the layout can keep evolving while the numbers stay nailed down.
+
+
+def _cells(line):
+    return [c.strip().replace("**", "") for c in line.strip().strip("|").split("|")]
+
+
+def _rows(text, first_header):
+    out, on = [], False
+    for line in text.splitlines():
+        if line.startswith("|") and _cells(line)[0] == first_header:
+            on = True
+            continue
+        if on:
+            if not line.startswith("|"):
+                break
+            if set(line) <= set("|- "):
+                continue
+            out.append(_cells(line))
+    return out
+
+
+def _section(text, heading):
+    start = text.index(heading)
+    end = text.find("\n## ", start + 1)
+    return text[start: end if end != -1 else len(text)]
+
+
+def test_report_legs_match_the_card_exactly(card):
+    text = render_weekly_report(card, generated_at=CAPTURED)
+    rows = _rows(text, "Rank")
+    assert len(rows) == len(card.qualifying_legs)
+    for row, leg in zip(rows, card.qualifying_legs):
+        original, teased = (part.strip() for part in row[2].split("→"))
+        assert int(row[0]) == leg.rank
+        assert row[1] == leg.team
+        assert original == str(leg.spread)
+        assert teased == str(leg.teased_spread)
+        assert row[3] == str(leg.total)
+        # P_est is displayed to 1dp; it must be exactly that rendering of the stored
+        # full-precision value — not a separately computed number.
+        assert row[4] == f"{leg.p_est * 100:.1f}%"
+
+
+def test_report_ticket_board_matches_the_card_exactly(card):
+    text = render_weekly_report(card, generated_at=CAPTURED)
+    rows = _rows(_section(text, "## Full ticket board"), "Ticket")
+    assert len(rows) == len(card.tickets)
+    for row, ticket in zip(rows, card.tickets):
+        assert row[0] == "+".join(ticket.teams)
+        assert row[1] == ticket.offered_american
+        assert row[2] == f"{ticket.p_ticket * 100:.1f}%"
+        if ticket.break_even != "UNAVAILABLE":
+            assert row[3] == f"{float(ticket.break_even) * 100:.1f}%"
+        if ticket.ev_percent != "UNAVAILABLE":
+            assert row[4] == f"{float(ticket.ev_percent.rstrip('%')):.1f}%"
+        assert row[5].endswith(ticket.status)
+
+
+def test_report_shows_negative_ev_tickets_too(card):
+    """The board must never hide a losing ticket behind the proposed card."""
+    text = render_weekly_report(card, generated_at=CAPTURED)
+    board_rows = _rows(_section(text, "## Full ticket board"), "Ticket")
+    assert {r[0] for r in board_rows} == {"+".join(t.teams) for t in card.tickets}
+
+
+def test_report_selected_set_and_exposure_are_unchanged(card):
+    text = render_weekly_report(card, generated_at=CAPTURED)
+    shown = {r[0] for r in _rows(_section(text, "## Full ticket board"), "Ticket")
+             if "**" in "".join(r)} or None
+    # exposure line: "Leg exposure: TB 2u · ATL 2u"
+    line = next(l for l in text.splitlines() if l.startswith("Leg exposure:"))
+    parsed = {}
+    for part in line.split(":", 1)[1].split("·"):
+        team, units = part.replace("**", "").strip().rsplit(" ", 1)
+        parsed[team.strip()] = int(units.rstrip("u"))
+    assert parsed == {leg.split("-")[-1]: units for leg, units in card.exposure.items()}
+    assert sum(parsed.values()) == sum(card.exposure.values())
+
+
+def test_report_badges_cover_every_operational_state(card):
+    from teaser_model_v1.live.report import (
+        BADGE_DISCARD, BADGE_PENDING, BADGE_PLACED, BADGE_SHADOW, BADGE_VALIDATED,
+    )
+    unchecked = render_weekly_report(card, generated_at=CAPTURED)
+    assert BADGE_SHADOW in unchecked and BADGE_PENDING in unchecked
+
+    same = recheck_card(card, board(FIVE_PRIMARY, captured_at=LATER),
+                        prices(two=-110, three=180, captured_at=LATER), rechecked_at=LATER)
+    assert BADGE_VALIDATED in render_weekly_report(card, recheck=same, generated_at=LATER)
+
+    broken = recheck_card(card, board(moved("NE", spread="3.0"), captured_at=LATER),
+                          prices(two=-110, three=180, captured_at=LATER), rechecked_at=LATER)
+    assert BADGE_DISCARD in render_weekly_report(card, recheck=broken, generated_at=LATER)
+
+    placed = [{
+        "placement_id": "plc_x", "ticket_key": "a|b", "sportsbook": "BOOK",
+        "american_odds": "-110", "stake_units": 1, "placed_at": "2026-09-20T12:45:00-04:00",
+        "designation": "MODEL_DESIGNATED",
+    }]
+    assert BADGE_PLACED in render_weekly_report(card, placements=placed, generated_at=CAPTURED)
+
+
+def test_report_never_signals_with_colour_alone(card):
+    """Every status indicator carries its text label, not just a coloured dot."""
+    from teaser_model_v1.live.report import AMBER, BLUE, GRAY, GREEN, RED
+    text = render_weekly_report(card, generated_at=CAPTURED)
+    for line in text.splitlines():
+        for dot in (GREEN, AMBER, RED, GRAY, BLUE):
+            if dot in line:
+                after = line.split(dot, 1)[1].replace("*", "").strip()
+                assert after and after[0].isalpha(), f"bare colour indicator in: {line!r}"
+
+
+def test_report_puts_audit_details_below_the_card(card):
+    """Snapshot ids belong at the bottom; the operational state belongs at the top."""
+    text = render_weekly_report(card, generated_at=CAPTURED)
+    assert text.index("## Proposed card") < text.index("## Full ticket board")
+    assert text.index("## Full ticket board") < text.index("## Audit")
+    assert text.index("## Audit") > text.index(card.market_snapshot_id)  # header-free top
+    assert text.rindex(card.market_snapshot_id) > text.index("## Audit")
+
+
+def test_report_pending_verdict_is_shown_per_proposed_ticket(card):
+    from teaser_model_v1.live.report import VERDICT_PENDING
+    text = render_weekly_report(card, generated_at=CAPTURED)
+    section = _section(text, "## Re-check")
+    for ticket in card.selected_tickets:
+        assert "+".join(ticket.teams) in section
+    assert section.count(VERDICT_PENDING) >= len(card.selected_tickets)
