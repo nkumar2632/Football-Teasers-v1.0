@@ -29,10 +29,10 @@ Ball State,Liberty,Liberty,-14.5,49.5,16:00,CBS wk3 board
 Northern Iowa,Iowa,Iowa,-31.5,48.5,16:00,CBS wk3 board
 WKU,Indiana,Indiana,-44.5,60.5,16:00,CBS wk3 board
 Louisiana Tech,Baylor,Baylor,-17.5,53.5,16:00,CBS wk3 board
-Stanford,Duke,Duke,-9.5,51.5,16:00,CBS wk3 board
+Stanford,Duke,Duke,-9.5,51.5,16:00,CONFLICT -9.5/-10.5 (FanDuel shown at -10.5); unattributed
 Michigan State,Notre Dame,Notre Dame,-29.5,52,19:30,CONFLICT total 51.5/52.5
 LSU,Ole Miss,LSU,-3,58.5,19:30,CBS wk3 board
-Vanderbilt,NC State,Vanderbilt,-3,51,,search synthesis
+NC State,Vanderbilt,Vanderbilt,-3,51,12:45,search synthesis; venue corrected (game is AT Vanderbilt); no pregame total confirmed
 Missouri,Troy,Missouri,-27.5,49.5,,search synthesis
 Pitt,Syracuse,Pitt,-10.5,51.5,,search synthesis
 Miami,Wake Forest,Miami,-21.5,55.5,,search synthesis

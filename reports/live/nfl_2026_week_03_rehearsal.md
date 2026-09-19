@@ -1,6 +1,6 @@
 # NFL 2026 Week 3 — Teaser Model v1.0 live card
 
-Report generated: `2026-09-19T18:16:44+00:00`
+Report generated: `2026-09-19T18:19:09+00:00`
 
 > Frozen Teaser Model v1.0. Nothing in this system places a wager.
 
