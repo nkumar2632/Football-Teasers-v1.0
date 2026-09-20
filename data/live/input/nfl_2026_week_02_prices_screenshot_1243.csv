@@ -1,0 +1,16 @@
+# ACTUAL teaser menu, transcribed from the operator's 2026-09-20 12:43 PM ET screenshot.
+#
+# Product used: "2-6T Teaser (6 pts FB, 4 pts BK)" — 6 points per football leg, which is
+# exactly frozen v1.0's TEASER_POINTS = 6.
+#   2 picks / 2 won  -110   <- ingested
+#   3 picks / 3 won  +170   <- ingested
+#   4 / 4  +300, 5 / 5  +450, 6 / 6  +700   <- visible, NOT ingested (TICKET_SIZES = (2,3))
+#
+# ALSO VISIBLE AND DELIBERATELY NOT USED:
+#   "3T Special (10 pts FB, 7 pts BK) - Ties Lose"  3/3 @ -120
+#   "4T Special (13 pts FB) - Ties Lose"
+# These are 10-point and 13-point products. v1.0 prices SIX-point teasers only. Using a
+# 10-point payout against 6-point geometry would be a category error, not a better price.
+ticket_size,american_odds,decimal_odds,sportsbook,captured_at,source_reference,notes
+2,-110,,USER_SPORTSBOOK_SCREENSHOT,2026-09-20T12:43:00-04:00,user sportsbook screenshot (2-6T teaser menu),6 pts FB; all picks must win
+3,+170,,USER_SPORTSBOOK_SCREENSHOT,2026-09-20T12:43:00-04:00,user sportsbook screenshot (2-6T teaser menu),6 pts FB; all picks must win

@@ -3,3 +3,5 @@
 {"kind": "teaser_price_snapshot", "path": "prc_2026w02_d29ff0515315.json", "record_id": "prc_2026w02_d29ff0515315", "stored_at": "2026-09-19T21:51:30+00:00"}
 {"kind": "market_snapshot", "path": "mkt_2026w02_bd5db42aa71b.json", "record_id": "mkt_2026w02_bd5db42aa71b", "stored_at": "2026-09-20T13:44:40+00:00"}
 {"kind": "teaser_price_snapshot", "path": "prc_2026w02_37ad8d921a49.json", "record_id": "prc_2026w02_37ad8d921a49", "stored_at": "2026-09-20T13:53:54+00:00"}
+{"kind": "market_snapshot", "path": "mkt_2026w02_c8dca60f42db.json", "record_id": "mkt_2026w02_c8dca60f42db", "stored_at": "2026-09-20T16:45:48+00:00"}
+{"kind": "teaser_price_snapshot", "path": "prc_2026w02_ebe1f0f27c02.json", "record_id": "prc_2026w02_ebe1f0f27c02", "stored_at": "2026-09-20T16:45:55+00:00"}
