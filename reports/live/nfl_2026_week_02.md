@@ -5,14 +5,12 @@
 |                     |                             |
 |---------------------|-----------------------------|
 | **Sportsbook**      | USER_SPORTSBOOK_SCREENSHOT  |
-| **Graded**          | `2026-09-20T13:44:47+00:00` |
+| **Graded**          | `2026-09-20T13:54:01+00:00` |
 | **Re-check**        | NOT YET RECHECKED           |
 | **Games scanned**   | 15                          |
 | **Qualifying legs** | 3                           |
 
 > Frozen Teaser Model v1.0. Nothing in this system places a wager.
-
-> **No actual teaser price was supplied.** Ticket probabilities are shown, but break-even and EV are UNAVAILABLE and **no ticket is placement-eligible**.
 
 ## Qualifying legs
 
@@ -28,16 +26,25 @@ P_est is a *model-estimated hit probability*, shown to one decimal place. Full p
 
 ## Proposed card
 
-No positive-EV ticket is model-designated this week.
+**Every ticket below is POSITIVE EV at the offered price.** The frozen selection admits nothing else — a negative-EV ticket can never reach this table.
+
+| Ticket         | Price | P_ticket | Break-even | EV%       | Status            | Stake |
+|----------------|-------|----------|------------|-----------|-------------------|-------|
+| **TB+ATL+BAL** | +170  | 41.7%    | 37.0%      | **12.7%** | 🟢 **POSITIVE_EV** | 1u    |
+| **TB+ATL**     | -110  | 56.4%    | 52.4%      | **7.7%**  | 🟢 **POSITIVE_EV** | 1u    |
+
+Leg exposure: **TB 2u** · **ATL 2u** · **BAL 1u**
+
+Card `card_2026w02_807a19e9b26e` — **PROPOSED ONLY. This is not a wager.**
 
 ## Full ticket board
 
-| Ticket     | Price       | P_ticket | Break-even  | EV%         | Status                              |
-|------------|-------------|----------|-------------|-------------|-------------------------------------|
-| ATL+BAL    | UNAVAILABLE | 55.3%    | UNAVAILABLE | UNAVAILABLE | ⚪ NO_PRICE — not placement-eligible |
-| TB+ATL     | UNAVAILABLE | 56.4%    | UNAVAILABLE | UNAVAILABLE | ⚪ NO_PRICE — not placement-eligible |
-| TB+BAL     | UNAVAILABLE | 55.9%    | UNAVAILABLE | UNAVAILABLE | ⚪ NO_PRICE — not placement-eligible |
-| TB+ATL+BAL | UNAVAILABLE | 41.7%    | UNAVAILABLE | UNAVAILABLE | ⚪ NO_PRICE — not placement-eligible |
+| Ticket         | Price | P_ticket | Break-even | EV%       | Status        |
+|----------------|-------|----------|------------|-----------|---------------|
+| **TB+ATL+BAL** | +170  | 41.7%    | 37.0%      | **12.7%** | 🟢 POSITIVE_EV |
+| **TB+ATL**     | -110  | 56.4%    | 52.4%      | **7.7%**  | 🟢 POSITIVE_EV |
+| TB+BAL         | -110  | 55.9%    | 52.4%      | **6.7%**  | 🟢 POSITIVE_EV |
+| ATL+BAL        | -110  | 55.3%    | 52.4%      | **5.5%**  | 🟢 POSITIVE_EV |
 
 Every constructible ticket is shown, including negative-EV ones. **"Best available" does not mean positive EV.** Bold ticket = on the proposed card.
 
@@ -45,7 +52,12 @@ Every constructible ticket is shown, including negative-EV ones. **"Best availab
 
 🟡 **NOT YET RECHECKED**
 
-> The card above was graded against `mkt_2026w02_bd5db42aa71b` at `2026-09-20T13:44:47+00:00`. **Treat it as stale until re-checked against a current snapshot.**
+| Proposed ticket | Verdict   |
+|-----------------|-----------|
+| TB+ATL+BAL      | 🟡 PENDING |
+| TB+ATL          | 🟡 PENDING |
+
+> The card above was graded against `mkt_2026w02_bd5db42aa71b` at `2026-09-20T13:54:01+00:00`. **Treat it as stale until re-checked against a current snapshot.**
 
 ## Placement
 
@@ -111,16 +123,16 @@ The two value columns are **deliberately separate and must not be compared down 
 
 | field                 | value                       |
 |-----------------------|-----------------------------|
-| card id               | `card_2026w02_7056934612c9` |
+| card id               | `card_2026w02_807a19e9b26e` |
 | market snapshot       | `mkt_2026w02_bd5db42aa71b`  |
-| teaser price snapshot | NONE — EV UNAVAILABLE       |
+| teaser price snapshot | `prc_2026w02_37ad8d921a49`  |
 | sportsbook / source   | USER_SPORTSBOOK_SCREENSHOT  |
-| graded at             | `2026-09-20T13:44:47+00:00` |
-| report generated      | `2026-09-20T13:44:47+00:00` |
+| graded at             | `2026-09-20T13:54:01+00:00` |
+| report generated      | `2026-09-20T13:54:01+00:00` |
 | card status           | PROPOSED                    |
 | games scanned         | 15                          |
 
-Source notes: 2026-09-20 game-day run. NO teaser payout menu in the screenshots, so NO price snapshot was attached and EV is UNAVAILABLE by construction. Nothing placed.
+Source notes: 2026-09-20 game-day run with the actual 2-6T teaser menu. Board and prices both captured this morning.
 
 ### Full-precision legs
 
@@ -132,11 +144,19 @@ Source notes: 2026-09-20 game-day run. NO teaser payout menu in the screenshots,
 
 ### Full-precision tickets
 
-| Ticket     | P_ticket           | Break-even  | EV%         |
-|------------|--------------------|-------------|-------------|
-| ATL+BAL    | 0.5528024935592587 | UNAVAILABLE | UNAVAILABLE |
-| TB+ATL     | 0.5641586431236891 | UNAVAILABLE | UNAVAILABLE |
-| TB+BAL     | 0.5586563392136087 | UNAVAILABLE | UNAVAILABLE |
-| TB+ATL+BAL | 0.4174053250861558 | UNAVAILABLE | UNAVAILABLE |
+| Ticket     | P_ticket           | Break-even          | EV%    |
+|------------|--------------------|---------------------|--------|
+| TB+ATL+BAL | 0.4174053250861558 | 0.37037037037037035 | 12.70% |
+| TB+ATL     | 0.5641586431236891 | 0.5238095238095238  | 7.70%  |
+| TB+BAL     | 0.5586563392136087 | 0.5238095238095238  | 6.65%  |
+| ATL+BAL    | 0.5528024935592587 | 0.5238095238095238  | 5.54%  |
 
-Presentation only: this report formats the stored card and derives no model value. Probabilities, EV, selection and exposure are read from `card_2026w02_7056934612c9` exactly as the grading layer wrote them.
+### Exposure by leg id
+
+| Leg id                | Units |
+|-----------------------|-------|
+| `2026_02_CAR_ATL-ATL` | 2     |
+| `2026_02_CLE_TB-TB`   | 2     |
+| `2026_02_NO_BAL-BAL`  | 1     |
+
+Presentation only: this report formats the stored card and derives no model value. Probabilities, EV, selection and exposure are read from `card_2026w02_807a19e9b26e` exactly as the grading layer wrote them.
